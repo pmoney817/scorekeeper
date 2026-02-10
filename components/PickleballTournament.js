@@ -1219,15 +1219,52 @@ Examples:
     return true;
   };
 
-  // Get standings for round robin
+  // Get standings with tiebreakers: wins → head-to-head → point differential → win % → total points
   const getStandings = () => {
+    // Calculate point differential for each participant
+    const pointDiffs = {};
+    participants.forEach(p => { pointDiffs[p.id] = 0; });
+    matches.filter(m => m.completed).forEach(m => {
+      const t1Ids = Array.isArray(m.team1) ? m.team1.map(x => x.id) : [m.team1?.id];
+      const t2Ids = Array.isArray(m.team2) ? m.team2.map(x => x.id) : [m.team2?.id];
+      t1Ids.forEach(id => { if (id && pointDiffs[id] !== undefined) pointDiffs[id] += (m.score1 || 0) - (m.score2 || 0); });
+      t2Ids.forEach(id => { if (id && pointDiffs[id] !== undefined) pointDiffs[id] += (m.score2 || 0) - (m.score1 || 0); });
+    });
+
+    // Head-to-head: did A beat B directly?
+    const getHeadToHead = (aId, bId) => {
+      const h2h = matches.filter(m => {
+        if (!m.completed) return false;
+        const t1Ids = Array.isArray(m.team1) ? m.team1.map(x => x.id) : [m.team1?.id];
+        const t2Ids = Array.isArray(m.team2) ? m.team2.map(x => x.id) : [m.team2?.id];
+        return (t1Ids.includes(aId) && t2Ids.includes(bId)) || (t1Ids.includes(bId) && t2Ids.includes(aId));
+      });
+      let aWins = 0, bWins = 0;
+      h2h.forEach(m => {
+        const winnerId = Array.isArray(m.winner) ? m.winner[0]?.id : m.winner?.id;
+        const t1Ids = Array.isArray(m.team1) ? m.team1.map(x => x.id) : [m.team1?.id];
+        if (t1Ids.includes(aId)) {
+          if (winnerId && t1Ids.includes(winnerId)) aWins++; else bWins++;
+        } else {
+          if (winnerId && t1Ids.includes(winnerId)) bWins++; else aWins++;
+        }
+      });
+      if (aWins > bWins) return -1; // A wins h2h
+      if (bWins > aWins) return 1;  // B wins h2h
+      return 0; // tied or never played
+    };
+
     return [...participants]
       .map(p => ({
         ...p,
-        winPercentage: p.wins + p.losses > 0 ? (p.wins / (p.wins + p.losses)) * 100 : 0
+        winPercentage: p.wins + p.losses > 0 ? (p.wins / (p.wins + p.losses)) * 100 : 0,
+        pointDiff: pointDiffs[p.id] || 0,
       }))
       .sort((a, b) => {
         if (b.wins !== a.wins) return b.wins - a.wins;
+        const h2h = getHeadToHead(a.id, b.id);
+        if (h2h !== 0) return h2h;
+        if (b.pointDiff !== a.pointDiff) return b.pointDiff - a.pointDiff;
         if (b.winPercentage !== a.winPercentage) return b.winPercentage - a.winPercentage;
         return b.points - a.points;
       });
@@ -2800,6 +2837,7 @@ Examples:
                       <th className="px-4 py-3 text-center">Wins</th>
                       <th className="px-4 py-3 text-center">Losses</th>
                       <th className="px-4 py-3 text-center">Win %</th>
+                      <th className="px-4 py-3 text-center">+/-</th>
                       <th className="px-4 py-3 text-center">Points</th>
                     </tr>
                   </thead>
@@ -2821,6 +2859,9 @@ Examples:
                         <td className="px-4 py-3 text-center">{participant.wins}</td>
                         <td className="px-4 py-3 text-center">{participant.losses}</td>
                         <td className="px-4 py-3 text-center">{participant.winPercentage.toFixed(1)}%</td>
+                        <td className={`px-4 py-3 text-center font-medium ${participant.pointDiff > 0 ? 'text-green-600' : participant.pointDiff < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                          {participant.pointDiff > 0 ? '+' : ''}{participant.pointDiff}
+                        </td>
                         <td className="px-4 py-3 text-center">{participant.points}</td>
                       </tr>
                     ))}
