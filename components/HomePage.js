@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Trophy, ArrowRight, Sparkles, Target, Menu, X } from 'lucide-react';
+import { Trophy, ArrowRight, Sparkles, Target, Menu, X, LogIn } from 'lucide-react';
 import Link from 'next/link';
 
 export default function HomePage() {
@@ -37,7 +37,7 @@ export default function HomePage() {
       <div className="relative z-10 min-h-screen flex flex-col">
         {/* Top bar: Menu + Logo + Daily Vibes */}
         <div className="px-4 md:px-8 pt-5 pb-4 animate-fade-in-up">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 flex-1">
             {/* Menu */}
             <div ref={menuRef} className="relative z-20">
               <button
@@ -84,6 +84,14 @@ export default function HomePage() {
               </p>
             </div>
           </div>
+
+          {/* Login button */}
+          <Link href="/login">
+            <span className="inline-flex items-center gap-2 bg-white/70 backdrop-blur-md px-5 py-2.5 rounded-xl shadow-soft border border-white/40 hover:bg-white/90 transition-all duration-300 cursor-pointer font-semibold text-foreground text-sm">
+              <LogIn className="w-4 h-4 text-court" />
+              Log In
+            </span>
+          </Link>
         </div>
 
         {/* Hero Section */}

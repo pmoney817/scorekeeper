@@ -234,81 +234,161 @@ Examples:
 
   // Generate Round Robin matches
   const generateRoundRobin = () => {
-    if (participants.length < 4) {
-      alert('Need at least 4 players for a doubles round robin');
-      return;
-    }
+    if (participantType === 'team') {
+      // Team round robin: each team plays every other team
+      if (participants.length < 2) {
+        alert('Need at least 2 teams for a round robin');
+        return;
+      }
 
-    const players = [...participants].sort(() => Math.random() - 0.5);
-    const maxCourts = Math.floor(players.length / 4);
-    const numCourts = Math.min(tournamentSettings.courts, maxCourts);
+      const teams = [...participants].sort(() => Math.random() - 0.5);
+      const maxCourts = Math.floor(teams.length / 2);
+      const numCourts = Math.min(tournamentSettings.courts, maxCourts);
 
-    // Generate all unique 2v2 pairings from all groups of 4 players
-    const allPairings = [];
-    for (let i = 0; i < players.length; i++) {
-      for (let j = i + 1; j < players.length; j++) {
-        for (let k = j + 1; k < players.length; k++) {
-          for (let l = k + 1; l < players.length; l++) {
-            allPairings.push({ team1: [players[i], players[j]], team2: [players[k], players[l]] });
-            allPairings.push({ team1: [players[i], players[k]], team2: [players[j], players[l]] });
-            allPairings.push({ team1: [players[i], players[l]], team2: [players[j], players[k]] });
+      // Generate all matchups (every team vs every other team)
+      const allMatchups = [];
+      for (let i = 0; i < teams.length; i++) {
+        for (let j = i + 1; j < teams.length; j++) {
+          allMatchups.push({ team1: teams[i], team2: teams[j] });
+        }
+      }
+
+      // Schedule into rounds with multiple courts
+      const playCounts = {};
+      teams.forEach(t => playCounts[t.id] = 0);
+      const usedMatchups = new Set();
+      const allMatches = [];
+      const totalRounds = tournamentSettings.rounds;
+
+      for (let round = 1; round <= totalRounds; round++) {
+        const usedThisRound = new Set();
+
+        for (let court = 1; court <= numCourts; court++) {
+          let bestMatchup = null;
+          let bestScore = Infinity;
+          const candidates = [...allMatchups].sort(() => Math.random() - 0.5);
+
+          for (const matchup of candidates) {
+            const id1 = matchup.team1.id;
+            const id2 = matchup.team2.id;
+
+            // Skip if either team is already playing this round
+            if (usedThisRound.has(id1) || usedThisRound.has(id2)) continue;
+
+            const key = [id1, id2].sort().join('-');
+            const repeatPenalty = usedMatchups.has(key) ? 1000 : 0;
+            const score = playCounts[id1] + playCounts[id2] + repeatPenalty;
+
+            if (score < bestScore) {
+              bestScore = score;
+              bestMatchup = matchup;
+            }
+          }
+
+          if (!bestMatchup) break;
+
+          const id1 = bestMatchup.team1.id;
+          const id2 = bestMatchup.team2.id;
+          playCounts[id1]++;
+          playCounts[id2]++;
+          usedThisRound.add(id1);
+          usedThisRound.add(id2);
+          usedMatchups.add([id1, id2].sort().join('-'));
+
+          allMatches.push({
+            id: `round-${round}-court-${court}`,
+            round,
+            court,
+            team1: bestMatchup.team1,
+            team2: bestMatchup.team2,
+            score1: null,
+            score2: null,
+            winner: null,
+            completed: false
+          });
+        }
+      }
+
+      setMatches(allMatches);
+      setCurrentView('tournament');
+    } else {
+      // Individual round robin (doubles mixer)
+      if (participants.length < 4) {
+        alert('Need at least 4 players for a doubles round robin');
+        return;
+      }
+
+      const players = [...participants].sort(() => Math.random() - 0.5);
+      const maxCourts = Math.floor(players.length / 4);
+      const numCourts = Math.min(tournamentSettings.courts, maxCourts);
+
+      // Generate all unique 2v2 pairings from all groups of 4 players
+      const allPairings = [];
+      for (let i = 0; i < players.length; i++) {
+        for (let j = i + 1; j < players.length; j++) {
+          for (let k = j + 1; k < players.length; k++) {
+            for (let l = k + 1; l < players.length; l++) {
+              allPairings.push({ team1: [players[i], players[j]], team2: [players[k], players[l]] });
+              allPairings.push({ team1: [players[i], players[k]], team2: [players[j], players[l]] });
+              allPairings.push({ team1: [players[i], players[l]], team2: [players[j], players[k]] });
+            }
           }
         }
       }
-    }
 
-    // Greedily pick pairings to balance games per player, multiple courts per round
-    const playCounts = {};
-    players.forEach(p => playCounts[p.id] = 0);
-    const usedPairings = new Set();
-    const allMatches = [];
+      // Greedily pick pairings to balance games per player, multiple courts per round
+      const playCounts = {};
+      players.forEach(p => playCounts[p.id] = 0);
+      const usedPairings = new Set();
+      const allMatches = [];
 
-    for (let round = 1; round <= tournamentSettings.rounds; round++) {
-      const usedThisRound = new Set();
+      for (let round = 1; round <= tournamentSettings.rounds; round++) {
+        const usedThisRound = new Set();
 
-      for (let court = 1; court <= numCourts; court++) {
-        let bestPairing = null;
-        let bestScore = Infinity;
-        const candidates = [...allPairings].sort(() => Math.random() - 0.5);
+        for (let court = 1; court <= numCourts; court++) {
+          let bestPairing = null;
+          let bestScore = Infinity;
+          const candidates = [...allPairings].sort(() => Math.random() - 0.5);
 
-        for (const pairing of candidates) {
-          const ids = [...pairing.team1, ...pairing.team2].map(p => p.id);
+          for (const pairing of candidates) {
+            const ids = [...pairing.team1, ...pairing.team2].map(p => p.id);
 
-          // Skip if any player is already on another court this round
-          if (ids.some(id => usedThisRound.has(id))) continue;
+            // Skip if any player is already on another court this round
+            if (ids.some(id => usedThisRound.has(id))) continue;
 
-          const key = [...ids].sort().join('-');
-          const repeatPenalty = usedPairings.has(key) ? 1000 : 0;
-          const score = ids.reduce((sum, id) => sum + playCounts[id], 0) + repeatPenalty;
+            const key = [...ids].sort().join('-');
+            const repeatPenalty = usedPairings.has(key) ? 1000 : 0;
+            const score = ids.reduce((sum, id) => sum + playCounts[id], 0) + repeatPenalty;
 
-          if (score < bestScore) {
-            bestScore = score;
-            bestPairing = pairing;
+            if (score < bestScore) {
+              bestScore = score;
+              bestPairing = pairing;
+            }
           }
+
+          if (!bestPairing) break; // Not enough available players for another court
+
+          const ids = [...bestPairing.team1, ...bestPairing.team2].map(p => p.id);
+          ids.forEach(id => { playCounts[id]++; usedThisRound.add(id); });
+          usedPairings.add([...ids].sort().join('-'));
+
+          allMatches.push({
+            id: `round-${round}-court-${court}`,
+            round,
+            court,
+            team1: bestPairing.team1,
+            team2: bestPairing.team2,
+            score1: null,
+            score2: null,
+            winner: null,
+            completed: false
+          });
         }
-
-        if (!bestPairing) break; // Not enough available players for another court
-
-        const ids = [...bestPairing.team1, ...bestPairing.team2].map(p => p.id);
-        ids.forEach(id => { playCounts[id]++; usedThisRound.add(id); });
-        usedPairings.add([...ids].sort().join('-'));
-
-        allMatches.push({
-          id: `round-${round}-court-${court}`,
-          round,
-          court,
-          team1: bestPairing.team1,
-          team2: bestPairing.team2,
-          score1: null,
-          score2: null,
-          winner: null,
-          completed: false
-        });
       }
-    }
 
-    setMatches(allMatches);
-    setCurrentView('tournament');
+      setMatches(allMatches);
+      setCurrentView('tournament');
+    }
   };
 
   // Generate Tournament Bracket
