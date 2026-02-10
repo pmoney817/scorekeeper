@@ -1,11 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Trophy, Zap, ArrowRight, Sparkles, Target, Menu, X } from 'lucide-react';
 import Link from 'next/link';
-import AffirmationCard from './AffirmationCard';
-import DrillCard from './DrillCard';
 
 export default function HomePage() {
-  const [activeSection, setActiveSection] = useState('affirmation');
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -55,20 +52,18 @@ export default function HomePage() {
                   <span className="font-semibold text-foreground text-sm">Create Game</span>
                 </div>
               </Link>
-              <button
-                onClick={() => { setActiveSection('affirmation'); setMenuOpen(false); document.getElementById('daily-content')?.scrollIntoView({ behavior: 'smooth' }); }}
-                className="flex items-center gap-3 px-5 py-3 hover:bg-ball/10 transition-colors w-full"
-              >
-                <Sparkles className="w-5 h-5 text-ball" />
-                <span className="font-semibold text-foreground text-sm">Affirmations</span>
-              </button>
-              <button
-                onClick={() => { setActiveSection('drill'); setMenuOpen(false); document.getElementById('daily-content')?.scrollIntoView({ behavior: 'smooth' }); }}
-                className="flex items-center gap-3 px-5 py-3 hover:bg-court/10 transition-colors w-full"
-              >
-                <Target className="w-5 h-5 text-court" />
-                <span className="font-semibold text-foreground text-sm">Practice Drills</span>
-              </button>
+              <Link href="/affirmations" onClick={() => setMenuOpen(false)}>
+                <div className="flex items-center gap-3 px-5 py-3 hover:bg-ball/10 transition-colors cursor-pointer">
+                  <Sparkles className="w-5 h-5 text-ball" />
+                  <span className="font-semibold text-foreground text-sm">Affirmations</span>
+                </div>
+              </Link>
+              <Link href="/drills" onClick={() => setMenuOpen(false)}>
+                <div className="flex items-center gap-3 px-5 py-3 hover:bg-court/10 transition-colors cursor-pointer">
+                  <Target className="w-5 h-5 text-court" />
+                  <span className="font-semibold text-foreground text-sm">Practice Drills</span>
+                </div>
+              </Link>
             </div>
           )}
         </div>
@@ -77,17 +72,25 @@ export default function HomePage() {
         <section className="px-4 md:px-8 pt-6 pb-10">
           <div className="max-w-6xl mx-auto">
             <div className="flex flex-col items-center">
-              {/* Logo centered */}
-              <div className="animate-fade-in-up mb-4">
-                <img src="/pickleball-vibes-logo.png" alt="Pickleball Vibes logo" className="h-56 w-56 md:h-72 md:w-72 object-contain drop-shadow-md" />
+              {/* Logo with side badges */}
+              <div className="animate-fade-in-up mb-6 flex flex-col md:flex-row items-center justify-center gap-6">
+                <div className="inline-flex items-center gap-3 bg-ball/20 text-foreground px-6 py-3 rounded-2xl text-lg md:text-xl font-semibold border border-ball/30 shadow-soft">
+                  <Zap className="w-6 h-6 text-ball" />
+                  Daily motivation for players
+                </div>
+                <img src="/pickleball-vibes-logo.png" alt="Pickleball Vibes logo" className="h-96 w-96 md:h-[30rem] md:w-[30rem] object-contain drop-shadow-md" />
+                <div className="text-center md:text-left">
+                  <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-1">
+                    Your Daily <span className="text-gradient-court">Vibes</span>
+                  </h2>
+                  <p className="text-muted-foreground font-body text-sm md:text-base">
+                    Fuel your mindset and sharpen<br className="hidden md:inline" /> your game every single day
+                  </p>
+                </div>
               </div>
 
               {/* Hero text */}
               <div className="text-center animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-                <div className="inline-flex items-center gap-2 bg-ball/20 text-foreground px-4 py-1.5 rounded-full text-sm font-medium mb-6 border border-ball/30">
-                  <Zap className="w-4 h-4 text-ball" />
-                  Daily motivation for players
-                </div>
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-foreground mb-5 leading-tight">
                   Elevate Your
                   <br />
@@ -104,15 +107,12 @@ export default function HomePage() {
                       <ArrowRight className="w-5 h-5" />
                     </span>
                   </Link>
-                  <button
-                    onClick={() => {
-                      document.getElementById('daily-content')?.scrollIntoView({ behavior: 'smooth' });
-                    }}
-                    className="inline-flex items-center justify-center gap-2 bg-white/70 backdrop-blur-sm text-foreground px-8 py-4 rounded-2xl font-semibold shadow-soft hover:bg-white/90 transition-all duration-300 border border-white/50 text-lg"
-                  >
-                    <Sparkles className="w-5 h-5 text-ball" />
-                    Daily Vibes
-                  </button>
+                  <Link href="/affirmations">
+                    <span className="inline-flex items-center justify-center gap-2 bg-white/70 backdrop-blur-sm text-foreground px-8 py-4 rounded-2xl font-semibold shadow-soft hover:bg-white/90 transition-all duration-300 border border-white/50 text-lg w-full sm:w-auto cursor-pointer">
+                      <Sparkles className="w-5 h-5 text-ball" />
+                      Daily Vibes
+                    </span>
+                  </Link>
                 </div>
               </div>
 
@@ -125,15 +125,13 @@ export default function HomePage() {
           <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
               { icon: Trophy, title: 'Tournament Manager', desc: 'Round robin, brackets, pool play, ladder leagues', color: 'court', href: '/tournament' },
-              { icon: Sparkles, title: 'Daily Affirmations', desc: 'Start every session with the right mindset', color: 'ball', action: () => { setActiveSection('affirmation'); document.getElementById('daily-content')?.scrollIntoView({ behavior: 'smooth' }); } },
-              { icon: Target, title: 'Practice Drills', desc: 'Beginner to advanced drills with step-by-step guides', color: 'court', action: () => { setActiveSection('drill'); document.getElementById('daily-content')?.scrollIntoView({ behavior: 'smooth' }); } },
-            ].map((feature, i) => {
-              const inner = (
+              { icon: Sparkles, title: 'Daily Affirmations', desc: 'Start every session with the right mindset', color: 'ball', href: '/affirmations' },
+              { icon: Target, title: 'Practice Drills', desc: 'Beginner to advanced drills with step-by-step guides', color: 'court', href: '/drills' },
+            ].map((feature, i) => (
+              <Link key={i} href={feature.href}>
                 <div
-                  key={i}
                   className="group bg-white/60 backdrop-blur-md rounded-2xl p-5 border border-white/50 shadow-soft hover:shadow-elevated hover:bg-white/80 transition-all duration-300 cursor-pointer hover:-translate-y-1 animate-fade-in-up"
                   style={{ animationDelay: `${0.3 + i * 0.1}s` }}
-                  onClick={feature.action || undefined}
                 >
                   <div className={`inline-flex p-3 rounded-xl mb-3 ${feature.color === 'ball' ? 'bg-ball/20' : 'bg-court/10'}`}>
                     <feature.icon className={`w-6 h-6 ${feature.color === 'ball' ? 'text-foreground' : 'text-court'}`} />
@@ -141,66 +139,8 @@ export default function HomePage() {
                   <h3 className="font-display font-bold text-foreground mb-1">{feature.title}</h3>
                   <p className="text-sm text-muted-foreground font-body">{feature.desc}</p>
                 </div>
-              );
-              return feature.href ? <Link key={i} href={feature.href}>{inner}</Link> : <div key={i}>{inner}</div>;
-            })}
-          </div>
-        </section>
-
-        {/* Daily Content Section */}
-        <section id="daily-content" className="px-4 md:px-8 py-12">
-          <div className="max-w-6xl mx-auto">
-            {/* Section header */}
-            <div className="text-center mb-8 animate-fade-in-up">
-              <h2 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-3">
-                Your Daily <span className="text-gradient-court">Vibes</span>
-              </h2>
-              <p className="text-muted-foreground font-body max-w-md mx-auto">
-                Fuel your mindset and sharpen your game every single day
-              </p>
-            </div>
-
-            {/* Toggle tabs */}
-            <div className="flex justify-center mb-8">
-              <div className="inline-flex bg-white/60 backdrop-blur-md rounded-2xl p-1.5 border border-white/50 shadow-soft">
-                <button
-                  onClick={() => setActiveSection('affirmation')}
-                  className={`px-6 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 ${
-                    activeSection === 'affirmation'
-                      ? 'bg-gradient-court text-white shadow-soft'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4" />
-                    Affirmation
-                  </span>
-                </button>
-                <button
-                  onClick={() => setActiveSection('drill')}
-                  className={`px-6 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 ${
-                    activeSection === 'drill'
-                      ? 'bg-gradient-court text-white shadow-soft'
-                      : 'text-muted-foreground hover:text-foreground'
-                  }`}
-                >
-                  <span className="flex items-center gap-2">
-                    <Target className="w-4 h-4" />
-                    Practice Drill
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Content */}
-            <div className="max-w-2xl mx-auto">
-              <div className={`transition-all duration-500 ${activeSection === 'affirmation' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 hidden'}`}>
-                <AffirmationCard />
-              </div>
-              <div className={`transition-all duration-500 ${activeSection === 'drill' ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 hidden'}`}>
-                <DrillCard />
-              </div>
-            </div>
+              </Link>
+            ))}
           </div>
         </section>
 
