@@ -1863,7 +1863,7 @@ Examples:
             
             {/* Game Name */}
             <div className="bg-gray-50 p-6 rounded-lg">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Game Name</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Game Name <span className="text-red-500">*</span></label>
               <input
                 type="text"
                 value={tournamentName}
@@ -2157,12 +2157,17 @@ Examples:
                       else if (tournamentType === 'doubleelim') generateDoubleElim();
                       else generateBracket();
                     }}
-                    disabled={tournamentType === 'ladder' ? (participants.length < 4 || participants.length % 4 !== 0) : participants.length < 2}
+                    disabled={!tournamentName.trim() || (tournamentType === 'ladder' ? (participants.length < 4 || participants.length % 4 !== 0) : participants.length < 2)}
                     className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
                   >
                     <Shuffle size={20} />
                     Start {tournamentType === 'roundrobin' ? 'Round Robin' : tournamentType === 'poolplay' ? 'Pool Play' : tournamentType === 'ladder' ? 'Ladder League' : tournamentType === 'doubleelim' ? 'Double Elimination' : 'Tournament Bracket'}
                   </button>
+                  {!tournamentName.trim() && (
+                    <p className="text-sm text-red-500 mt-2 text-center">
+                      Please enter a game name to start
+                    </p>
+                  )}
                   {tournamentType === 'ladder' && participants.length > 0 && participants.length % 4 !== 0 && (
                     <p className="text-sm text-red-500 mt-2 text-center">
                       Need a multiple of 4 players for ladder league (currently {participants.length})

@@ -154,19 +154,12 @@ export default function HomePage() {
         </section>
 
         {/* Footer */}
-        <footer className="py-8 px-6 mt-auto">
-          <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <img src="/pickleball-vibes-logo.png" alt="Logo" className="h-8 w-8 object-contain opacity-60" />
-              <p className="text-sm text-muted-foreground font-body">
-                Made with love for pickleball enthusiasts
-              </p>
-            </div>
-            <Link href="/tournament">
-              <span className="text-sm text-court font-semibold hover:underline cursor-pointer">
-                Launch Tournament Manager
-              </span>
-            </Link>
+        <footer className="py-12 px-6 mt-auto">
+          <div className="max-w-6xl mx-auto flex items-center justify-center gap-4">
+            <img src="/pickleball-vibes-logo.png" alt="Logo" className="h-28 w-28 object-contain opacity-70" />
+            <p className="text-lg text-muted-foreground font-body">
+              Made with love for pickleball enthusiasts
+            </p>
           </div>
         </footer>
       </div>
