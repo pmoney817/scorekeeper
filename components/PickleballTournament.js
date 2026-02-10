@@ -485,6 +485,110 @@ Examples:
     setCurrentView('tournament');
   };
 
+  // Generate Double Elimination Bracket
+  const generateDoubleElim = () => {
+    if (participants.length < 2) {
+      alert('Need at least 2 participants for a tournament');
+      return;
+    }
+
+    const shuffled = [...participants].sort(() => Math.random() - 0.5);
+    const allMatches = [];
+
+    // --- Winners Bracket ---
+    const bracketSize = Math.pow(2, Math.ceil(Math.log2(shuffled.length)));
+    const winnersRounds = Math.log2(bracketSize);
+
+    // Winners R1
+    const firstRoundCount = bracketSize / 2;
+    for (let i = 0; i < firstRoundCount; i++) {
+      const p1 = i * 2 < shuffled.length ? shuffled[i * 2] : null;
+      const p2 = i * 2 + 1 < shuffled.length ? shuffled[i * 2 + 1] : null;
+
+      if (p1 && p2) {
+        allMatches.push({
+          id: `winners-${i}-round-1`, round: 1, bracket: 'winners',
+          team1: p1, team2: p2, score1: null, score2: null,
+          winner: null, completed: false, bracketPosition: i
+        });
+      } else if (p1) {
+        allMatches.push({
+          id: `winners-${i}-round-1`, round: 1, bracket: 'winners',
+          team1: p1, team2: null, score1: null, score2: null,
+          winner: p1, completed: true, bracketPosition: i, isBye: true
+        });
+      }
+    }
+
+    // Winners subsequent rounds
+    let wMatchCount = firstRoundCount;
+    for (let r = 2; r <= winnersRounds; r++) {
+      wMatchCount = Math.ceil(wMatchCount / 2);
+      for (let i = 0; i < wMatchCount; i++) {
+        allMatches.push({
+          id: `winners-${i}-round-${r}`, round: r, bracket: 'winners',
+          team1: null, team2: null, score1: null, score2: null,
+          winner: null, completed: false, bracketPosition: i
+        });
+      }
+    }
+
+    // Advance bye winners in winners bracket
+    allMatches.filter(m => m.bracket === 'winners' && m.isBye && m.winner).forEach(byeMatch => {
+      const next = allMatches.find(m =>
+        m.bracket === 'winners' && m.round === 2 &&
+        Math.floor(byeMatch.bracketPosition / 2) === m.bracketPosition
+      );
+      if (next) {
+        if (!next.team1) next.team1 = byeMatch.winner;
+        else next.team2 = byeMatch.winner;
+      }
+    });
+
+    // --- Losers Bracket ---
+    // Losers has (winnersRounds - 1) * 2 rounds
+    // Odd losers rounds: winners-bracket losers drop in and face losers-bracket survivors
+    // Even losers rounds: losers-bracket survivors play each other
+    const losersRounds = (winnersRounds - 1) * 2;
+
+    // Calculate matches per losers round
+    // LR1: firstRoundCount/2 matches (R1 losers paired up)
+    // LR2: same count (survivors play each other) -> halves
+    // LR3: new drop-ins from winners R2 face LR2 survivors
+    // etc.
+    let losersMatchCount = Math.ceil(firstRoundCount / 2);
+    for (let lr = 1; lr <= losersRounds; lr++) {
+      for (let i = 0; i < losersMatchCount; i++) {
+        allMatches.push({
+          id: `losers-${i}-round-${lr}`, round: lr, bracket: 'losers',
+          team1: null, team2: null, score1: null, score2: null,
+          winner: null, completed: false, bracketPosition: i
+        });
+      }
+      // Even rounds halve the count (survivors play each other, then halve)
+      if (lr % 2 === 0) {
+        losersMatchCount = Math.ceil(losersMatchCount / 2);
+      }
+    }
+
+    // --- Grand Final ---
+    allMatches.push({
+      id: 'grand-final', round: 1, bracket: 'grand-final',
+      team1: null, team2: null, score1: null, score2: null,
+      winner: null, completed: false, bracketPosition: 0
+    });
+
+    // --- Reset Match (placeholder, only activated if needed) ---
+    allMatches.push({
+      id: 'reset-match', round: 1, bracket: 'reset',
+      team1: null, team2: null, score1: null, score2: null,
+      winner: null, completed: false, bracketPosition: 0, isReset: true
+    });
+
+    setMatches(allMatches);
+    setCurrentView('tournament');
+  };
+
   // Generate Pool Play into Bracket
   const generatePoolPlay = () => {
     const { numPools, poolSize } = tournamentSettings;
@@ -921,8 +1025,118 @@ Examples:
       }
     }
 
+    // Double elimination: advance winner + send loser to losers bracket
+    if (tournamentType === 'doubleelim' && currentMatch.bracket) {
+      const loserTeam = winnerTeam === currentMatch.team1 ? currentMatch.team2 : currentMatch.team1;
+      const winnersMatches = updatedMatches.filter(m => m.bracket === 'winners');
+      const losersMatches = updatedMatches.filter(m => m.bracket === 'losers');
+      const winnersMaxRound = winnersMatches.length > 0 ? Math.max(...winnersMatches.map(m => m.round)) : 0;
+      const losersMaxRound = losersMatches.length > 0 ? Math.max(...losersMatches.map(m => m.round)) : 0;
+
+      if (currentMatch.bracket === 'winners') {
+        // Advance winner in winners bracket
+        if (currentMatch.round < winnersMaxRound) {
+          const nextWinners = updatedMatches.find(m =>
+            m.bracket === 'winners' &&
+            m.round === currentMatch.round + 1 &&
+            Math.floor(currentMatch.bracketPosition / 2) === m.bracketPosition
+          );
+          if (nextWinners) {
+            updatedMatches = updatedMatches.map(m => {
+              if (m.id === nextWinners.id) {
+                return { ...m, team1: m.team1 ? m.team1 : winnerTeam, team2: m.team1 ? winnerTeam : m.team2 };
+              }
+              return m;
+            });
+          }
+        } else {
+          // Winners bracket champion → grand final team1
+          updatedMatches = updatedMatches.map(m => {
+            if (m.bracket === 'grand-final') {
+              return { ...m, team1: winnerTeam };
+            }
+            return m;
+          });
+        }
+
+        // Send loser to losers bracket
+        // Winners round N losers drop into losers round (N-1)*2 + 1
+        const losersDropRound = (currentMatch.round - 1) * 2 + 1;
+        const losersDropMatch = updatedMatches.find(m =>
+          m.bracket === 'losers' &&
+          m.round === losersDropRound &&
+          (!m.team1 || !m.team2)
+        );
+        if (losersDropMatch) {
+          updatedMatches = updatedMatches.map(m => {
+            if (m.id === losersDropMatch.id) {
+              return { ...m, team1: m.team1 ? m.team1 : loserTeam, team2: m.team1 ? loserTeam : m.team2 };
+            }
+            return m;
+          });
+        }
+      } else if (currentMatch.bracket === 'losers') {
+        // Advance winner in losers bracket
+        if (currentMatch.round < losersMaxRound) {
+          const nextLosers = updatedMatches.find(m =>
+            m.bracket === 'losers' &&
+            m.round === currentMatch.round + 1 &&
+            (!m.team1 || !m.team2)
+          );
+          if (nextLosers) {
+            updatedMatches = updatedMatches.map(m => {
+              if (m.id === nextLosers.id) {
+                return { ...m, team1: m.team1 ? m.team1 : winnerTeam, team2: m.team1 ? winnerTeam : m.team2 };
+              }
+              return m;
+            });
+          }
+        } else {
+          // Losers bracket champion → grand final team2
+          updatedMatches = updatedMatches.map(m => {
+            if (m.bracket === 'grand-final') {
+              return { ...m, team2: winnerTeam };
+            }
+            return m;
+          });
+        }
+      } else if (currentMatch.bracket === 'grand-final') {
+        const grandFinal = updatedMatches.find(m => m.id === 'grand-final');
+        if (grandFinal) {
+          // If losers bracket champion won, activate reset match
+          if (winnerTeam === grandFinal.team2) {
+            updatedMatches = updatedMatches.map(m => {
+              if (m.id === 'reset-match') {
+                return { ...m, team1: grandFinal.team1, team2: grandFinal.team2 };
+              }
+              return m;
+            });
+          }
+          // If winners bracket champion won, tournament is over
+        }
+      }
+      // Reset match: winner is champion, no further advancement needed
+    }
+
     setMatches(updatedMatches);
     setParticipants(updatedParticipants);
+
+    // Double elimination: check completion
+    if (tournamentType === 'doubleelim') {
+      const grandFinal = updatedMatches.find(m => m.id === 'grand-final');
+      const resetMatch = updatedMatches.find(m => m.id === 'reset-match');
+      if (grandFinal?.completed) {
+        // Winners bracket champ won grand final → done
+        if (grandFinal.winner === grandFinal.team1 || (resetMatch?.completed)) {
+          setCurrentView('results');
+          setCurrentMatch(null);
+          return;
+        }
+      }
+      setCurrentView('tournament');
+      setCurrentMatch(null);
+      return;
+    }
 
     // Pool play: check if pool phase is done → advance to bracket
     if (tournamentType === 'poolplay' && tournamentPhase === 'pools') {
@@ -1139,6 +1353,21 @@ Examples:
                   </div>
                 </div>
               </button>
+
+              <button
+                onClick={() => { setTournamentType('doubleelim'); setCurrentView('setup'); }}
+                className="text-left p-6 rounded-xl border-2 border-gray-200 hover:border-red-400 hover:bg-red-50 transition-all duration-200 hover:shadow-md group"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="p-3 rounded-xl bg-red-50 group-hover:bg-red-100 transition-colors">
+                    <Trophy size={32} className="text-red-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-800 mb-1">Double Elimination</h3>
+                    <p className="text-sm text-gray-600 leading-relaxed">Lose twice and you're out. Winners and losers brackets lead to a grand final.</p>
+                  </div>
+                </div>
+              </button>
             </div>
           </div>
         )}
@@ -1319,6 +1548,7 @@ Examples:
                     <option value="bracket">Bracket Tournament</option>
                     <option value="poolplay">Pool Play into Bracket</option>
                     <option value="ladder">Ladder League</option>
+                    <option value="doubleelim">Double Elimination</option>
                   </select>
                 </div>
                 
@@ -1541,13 +1771,14 @@ Examples:
                       if (tournamentType === 'roundrobin') generateRoundRobin();
                       else if (tournamentType === 'poolplay') generatePoolPlay();
                       else if (tournamentType === 'ladder') generateLadderSession(participants);
+                      else if (tournamentType === 'doubleelim') generateDoubleElim();
                       else generateBracket();
                     }}
                     disabled={tournamentType === 'ladder' ? (participants.length < 4 || participants.length % 4 !== 0) : participants.length < 2}
                     className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
                   >
                     <Shuffle size={20} />
-                    Start {tournamentType === 'roundrobin' ? 'Round Robin' : tournamentType === 'poolplay' ? 'Pool Play' : tournamentType === 'ladder' ? 'Ladder League' : 'Tournament Bracket'}
+                    Start {tournamentType === 'roundrobin' ? 'Round Robin' : tournamentType === 'poolplay' ? 'Pool Play' : tournamentType === 'ladder' ? 'Ladder League' : tournamentType === 'doubleelim' ? 'Double Elimination' : 'Tournament Bracket'}
                   </button>
                   {tournamentType === 'ladder' && participants.length > 0 && participants.length % 4 !== 0 && (
                     <p className="text-sm text-red-500 mt-2 text-center">
@@ -1568,7 +1799,7 @@ Examples:
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-semibold flex items-center gap-2">
                 <Trophy className="text-yellow-600" />
-                {tournamentType === 'roundrobin' ? 'Round Robin' : tournamentType === 'poolplay' ? (tournamentPhase === 'bracket' ? 'Bracket Play' : 'Pool Play') : tournamentType === 'ladder' ? `Ladder League — Session ${ladderSession}` : 'Tournament Bracket'}
+                {tournamentType === 'roundrobin' ? 'Round Robin' : tournamentType === 'poolplay' ? (tournamentPhase === 'bracket' ? 'Bracket Play' : 'Pool Play') : tournamentType === 'ladder' ? `Ladder League — Session ${ladderSession}` : tournamentType === 'doubleelim' ? 'Double Elimination' : 'Tournament Bracket'}
               </h2>
 
               <div className="text-sm text-gray-600">
@@ -1578,6 +1809,8 @@ Examples:
                   }
                   const relevant = tournamentType === 'poolplay'
                     ? matches.filter(m => m.phase === tournamentPhase)
+                    : tournamentType === 'doubleelim'
+                    ? matches.filter(m => !m.isBye && !m.isReset)
                     : matches;
                   return `${relevant.filter(m => m.completed).length} of ${relevant.length} matches completed`;
                 })()}
@@ -1932,8 +2165,168 @@ Examples:
                     </div>
                   </div>
                 ))
+              ) : tournamentType === 'doubleelim' ? (
+                // Double Elimination display
+                <>
+                  {/* Render a bracket section */}
+                  {(() => {
+                    const renderBracketSection = (title, bracketType, colorClass) => {
+                      const sectionMatches = matches.filter(m => m.bracket === bracketType && !m.isReset);
+                      if (sectionMatches.length === 0) return null;
+                      const rounds = {};
+                      sectionMatches.forEach(m => {
+                        if (!rounds[m.round]) rounds[m.round] = [];
+                        rounds[m.round].push(m);
+                      });
+                      const maxRound = Math.max(...sectionMatches.map(m => m.round));
+                      return (
+                        <div className={`border-2 ${colorClass} rounded-lg p-4`}>
+                          <h3 className="text-lg font-bold mb-3">{title}</h3>
+                          <div className="space-y-4">
+                            {Object.entries(rounds).sort(([a], [b]) => a - b).map(([round, roundMatches]) => (
+                              <div key={round}>
+                                <h4 className="text-sm font-semibold text-gray-500 mb-2">
+                                  {bracketType === 'winners'
+                                    ? (round == 1 ? 'Round 1' : round == maxRound ? 'Winners Final' : `Round ${round}`)
+                                    : `Round ${round}`}
+                                </h4>
+                                <div className="grid gap-2">
+                                  {roundMatches.map(match => (
+                                    <div key={match.id} className={`p-3 rounded-lg border ${
+                                      match.isBye ? 'bg-gray-50 border-gray-200' :
+                                      match.completed ? 'bg-green-50 border-green-200' :
+                                      match.team1 && match.team2 ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-200'
+                                    }`}>
+                                      {match.isBye ? (
+                                        <div className="text-sm text-gray-500">{getDisplayName(match.team1)} — BYE</div>
+                                      ) : (
+                                        <div className="flex justify-between items-center">
+                                          <div className="flex-1">
+                                            <div className="flex justify-between items-center mb-1">
+                                              <span className="font-medium text-sm">{getDisplayName(match.team1)}</span>
+                                              {match.completed && <span className="font-bold">{match.score1}</span>}
+                                            </div>
+                                            <div className="text-gray-400 text-xs mb-1">vs</div>
+                                            <div className="flex justify-between items-center">
+                                              <span className="font-medium text-sm">{getDisplayName(match.team2)}</span>
+                                              {match.completed && <span className="font-bold">{match.score2}</span>}
+                                            </div>
+                                          </div>
+                                          <div className="ml-3">
+                                            {match.completed ? (
+                                              <Crown className="text-yellow-500" size={16} />
+                                            ) : match.team1 && match.team2 ? (
+                                              <button onClick={() => startMatch(match)} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1">
+                                                <Play size={14} /> Play
+                                              </button>
+                                            ) : (
+                                              <span className="text-gray-400 text-xs">Waiting</span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    };
+
+                    const grandFinal = matches.find(m => m.bracket === 'grand-final');
+                    const resetMatch = matches.find(m => m.bracket === 'reset');
+
+                    return (
+                      <>
+                        {renderBracketSection('Winners Bracket', 'winners', 'border-blue-200 bg-blue-50/50')}
+                        {renderBracketSection('Losers Bracket', 'losers', 'border-red-200 bg-red-50/50')}
+
+                        {/* Grand Final */}
+                        {grandFinal && (
+                          <div className="border-2 border-yellow-300 bg-yellow-50/50 rounded-lg p-4">
+                            <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
+                              <Crown className="text-yellow-500" size={20} />
+                              Grand Final
+                            </h3>
+                            <div className={`p-4 rounded-lg border-2 ${
+                              grandFinal.completed ? 'bg-green-50 border-green-200' :
+                              grandFinal.team1 && grandFinal.team2 ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-200'
+                            }`}>
+                              <div className="flex justify-between items-center">
+                                <div className="flex-1">
+                                  <div className="flex justify-between items-center mb-2">
+                                    <span className="font-medium">{getDisplayName(grandFinal.team1)}{grandFinal.team1 ? ' (W)' : ''}</span>
+                                    {grandFinal.completed && <span className="font-bold text-lg">{grandFinal.score1}</span>}
+                                  </div>
+                                  <div className="text-gray-400 text-sm mb-2">vs</div>
+                                  <div className="flex justify-between items-center">
+                                    <span className="font-medium">{getDisplayName(grandFinal.team2)}{grandFinal.team2 ? ' (L)' : ''}</span>
+                                    {grandFinal.completed && <span className="font-bold text-lg">{grandFinal.score2}</span>}
+                                  </div>
+                                </div>
+                                <div className="ml-4">
+                                  {grandFinal.completed ? (
+                                    <div className="flex items-center gap-2">
+                                      <Crown className="text-yellow-500" size={20} />
+                                      <span className="text-sm font-medium text-green-600">Complete</span>
+                                    </div>
+                                  ) : grandFinal.team1 && grandFinal.team2 ? (
+                                    <button onClick={() => startMatch(grandFinal)} className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+                                      <Play size={16} /> Play
+                                    </button>
+                                  ) : (
+                                    <span className="text-gray-500 text-sm">Waiting for bracket winners</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Reset Match */}
+                        {resetMatch && resetMatch.team1 && resetMatch.team2 && (
+                          <div className="border-2 border-purple-300 bg-purple-50/50 rounded-lg p-4">
+                            <h3 className="text-lg font-bold mb-3">Reset Match</h3>
+                            <p className="text-sm text-gray-600 mb-3">Losers bracket champion won the Grand Final — one more match to decide the champion!</p>
+                            <div className={`p-4 rounded-lg border-2 ${
+                              resetMatch.completed ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'
+                            }`}>
+                              <div className="flex justify-between items-center">
+                                <div className="flex-1">
+                                  <div className="flex justify-between items-center mb-2">
+                                    <span className="font-medium">{getDisplayName(resetMatch.team1)}</span>
+                                    {resetMatch.completed && <span className="font-bold text-lg">{resetMatch.score1}</span>}
+                                  </div>
+                                  <div className="text-gray-400 text-sm mb-2">vs</div>
+                                  <div className="flex justify-between items-center">
+                                    <span className="font-medium">{getDisplayName(resetMatch.team2)}</span>
+                                    {resetMatch.completed && <span className="font-bold text-lg">{resetMatch.score2}</span>}
+                                  </div>
+                                </div>
+                                <div className="ml-4">
+                                  {resetMatch.completed ? (
+                                    <div className="flex items-center gap-2">
+                                      <Crown className="text-yellow-500" size={20} />
+                                      <span className="text-sm font-medium text-green-600">Champion!</span>
+                                    </div>
+                                  ) : (
+                                    <button onClick={() => startMatch(resetMatch)} className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
+                                      <Play size={16} /> Play
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
+                </>
               ) : (
-                // Bracket tournament
+                // Single Elimination Bracket tournament
                 Object.entries(
                   matches.reduce((acc, match) => {
                     if (!acc[match.round]) acc[match.round] = [];
@@ -1943,15 +2336,15 @@ Examples:
                 ).map(([round, roundMatches]) => (
                   <div key={round} className="bg-gray-50 rounded-lg p-4">
                     <h3 className="text-lg font-semibold mb-3">
-                      {round == 1 ? 'First Round' : 
-                       round == Math.max(...matches.map(m => m.round)) ? 'Final' : 
-                       round == Math.max(...matches.map(m => m.round)) - 1 ? 'Semi-Final' : 
+                      {round == 1 ? 'First Round' :
+                       round == Math.max(...matches.map(m => m.round)) ? 'Final' :
+                       round == Math.max(...matches.map(m => m.round)) - 1 ? 'Semi-Final' :
                        `Round ${round}`}
                     </h3>
                     <div className="grid gap-3">
                       {roundMatches.map((match) => (
                         <div key={match.id} className={`p-4 rounded-lg border-2 ${
-                          match.completed ? 'bg-green-50 border-green-200' : 
+                          match.completed ? 'bg-green-50 border-green-200' :
                           match.team1 && match.team2 ? 'bg-white border-gray-200' : 'bg-gray-100 border-gray-300'
                         }`}>
                           <div className="flex justify-between items-center">
@@ -1970,7 +2363,7 @@ Examples:
                                 )}
                               </div>
                             </div>
-                            
+
                             <div className="ml-4">
                               {match.completed ? (
                                 <div className="flex items-center gap-2">
