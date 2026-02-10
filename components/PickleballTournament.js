@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Plus, Users, Trophy, Play, Edit3, Trash2, Shuffle, Target, Crown, MessageCircle, Send, Bot, Mic, ChevronUp, ChevronDown, ArrowUp, ArrowDown, Home } from 'lucide-react';
+import { Plus, Users, Trophy, Play, Edit3, Trash2, Shuffle, Target, Crown, MessageCircle, Send, Bot, Mic, ChevronUp, ChevronDown, ArrowUp, ArrowDown, Home, Save, History } from 'lucide-react';
 
 const PickleballTournament = () => {
   const [currentView, setCurrentView] = useState('format-select'); // format-select, setup, ai-setup, tournament, match, results
@@ -38,6 +38,9 @@ const PickleballTournament = () => {
     team2: 0
   });
 
+  const [tournamentName, setTournamentName] = useState('');
+  const [savedGames, setSavedGames] = useState([]);
+
   const [hydrated, setHydrated] = useState(false);
 
   // Restore state from localStorage on mount
@@ -58,6 +61,11 @@ const PickleballTournament = () => {
         if (data.tournamentPhase) setTournamentPhase(data.tournamentPhase);
         if (data.ladderSession) setLadderSession(data.ladderSession);
         if (data.courtAssignments) setCourtAssignments(data.courtAssignments);
+        if (data.tournamentName) setTournamentName(data.tournamentName);
+      }
+      const games = localStorage.getItem('pickleball-saved-games');
+      if (games) {
+        setSavedGames(JSON.parse(games));
       }
     } catch (e) {
       console.error('Failed to restore tournament state:', e);
@@ -81,11 +89,12 @@ const PickleballTournament = () => {
         score,
         ladderSession,
         courtAssignments,
+        tournamentName,
       }));
     } catch (e) {
       console.error('Failed to save tournament state:', e);
     }
-  }, [hydrated, currentView, tournamentType, tournamentPhase, participantType, participants, matches, currentMatch, tournamentSettings, score, ladderSession, courtAssignments]);
+  }, [hydrated, currentView, tournamentType, tournamentPhase, participantType, participants, matches, currentMatch, tournamentSettings, score, ladderSession, courtAssignments, tournamentName]);
 
   // AI Setup functionality
   const processAISetup = async (userMessage) => {
@@ -1188,6 +1197,23 @@ Examples:
       });
   };
 
+  const saveGame = () => {
+    const game = {
+      id: Date.now(),
+      name: tournamentName || 'Untitled Game',
+      date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+      type: tournamentType,
+      participantType,
+      participants: participants.map(p => ({ ...p })),
+      matches: matches.map(m => ({ ...m })),
+      standings: getStandings(),
+    };
+    const updated = [game, ...savedGames];
+    setSavedGames(updated);
+    localStorage.setItem('pickleball-saved-games', JSON.stringify(updated));
+    return game;
+  };
+
   const resetTournament = () => {
     setMatches([]);
     setCurrentMatch(null);
@@ -1198,6 +1224,7 @@ Examples:
     setAiMessages([]);
     setExtractedData(null);
     setUserInput('');
+    setTournamentName('');
     setCurrentView('format-select');
     localStorage.removeItem('pickleball-tournament');
   };
@@ -1369,6 +1396,36 @@ Examples:
                 </div>
               </button>
             </div>
+
+            {/* Game History */}
+            {savedGames.length > 0 && (
+              <div className="mt-8">
+                <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
+                  <History size={20} className="text-gray-600" />
+                  Game History
+                </h3>
+                <div className="space-y-2">
+                  {savedGames.map((game) => {
+                    const typeLabel = game.type === 'roundrobin' ? 'Round Robin' : game.type === 'bracket' ? 'Bracket' : game.type === 'poolplay' ? 'Pool Play' : game.type === 'ladder' ? 'Ladder' : game.type === 'doubleelim' ? 'Double Elim' : game.type;
+                    const champion = game.standings && game.standings[0];
+                    return (
+                      <div key={game.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div>
+                          <p className="font-semibold text-gray-800">{game.name}</p>
+                          <p className="text-sm text-gray-500">{game.date} &middot; {typeLabel} &middot; {game.participants?.length || 0} {game.participantType === 'team' ? 'teams' : 'players'}</p>
+                        </div>
+                        {champion && (
+                          <div className="flex items-center gap-1 text-sm text-yellow-700">
+                            <Crown size={14} className="text-yellow-500" />
+                            {champion.name}{champion.partner ? ` & ${champion.partner}` : ''}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -1529,6 +1586,18 @@ Examples:
         {currentView === 'setup' && (
           <div className="space-y-6">
             
+            {/* Game Name */}
+            <div className="bg-gray-50 p-6 rounded-lg">
+              <label className="block text-sm font-medium text-gray-700 mb-2">Game Name</label>
+              <input
+                type="text"
+                value={tournamentName}
+                onChange={(e) => setTournamentName(e.target.value)}
+                placeholder="e.g. Saturday Night Showdown"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+              />
+            </div>
+
             {/* Tournament Settings */}
             <div className="bg-gray-50 p-6 rounded-lg">
               <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
@@ -1797,10 +1866,13 @@ Examples:
             
             {/* Tournament Header */}
             <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-semibold flex items-center gap-2">
-                <Trophy className="text-yellow-600" />
-                {tournamentType === 'roundrobin' ? 'Round Robin' : tournamentType === 'poolplay' ? (tournamentPhase === 'bracket' ? 'Bracket Play' : 'Pool Play') : tournamentType === 'ladder' ? `Ladder League — Session ${ladderSession}` : tournamentType === 'doubleelim' ? 'Double Elimination' : 'Tournament Bracket'}
-              </h2>
+              <div>
+                {tournamentName && <h2 className="text-2xl font-bold text-gray-800">{tournamentName}</h2>}
+                <h3 className={`${tournamentName ? 'text-lg text-gray-500' : 'text-2xl'} font-semibold flex items-center gap-2`}>
+                  <Trophy className="text-yellow-600" />
+                  {tournamentType === 'roundrobin' ? 'Round Robin' : tournamentType === 'poolplay' ? (tournamentPhase === 'bracket' ? 'Bracket Play' : 'Pool Play') : tournamentType === 'ladder' ? `Ladder League — Session ${ladderSession}` : tournamentType === 'doubleelim' ? 'Double Elimination' : 'Tournament Bracket'}
+                </h3>
+              </div>
 
               <div className="text-sm text-gray-600">
                 {(() => {
@@ -2447,6 +2519,14 @@ Examples:
         {/* Results View */}
         {currentView === 'results' && (
           <div className="space-y-6">
+            {/* Game Title */}
+            {tournamentName && (
+              <div className="text-center">
+                <h2 className="text-3xl font-bold text-gray-800">{tournamentName}</h2>
+                <p className="text-gray-500 text-sm mt-1">{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+              </div>
+            )}
+
             {/* Champion Banner */}
             {getStandings().length > 0 && (
               <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-6 text-center">
@@ -2504,7 +2584,17 @@ Examples:
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-center gap-4">
+            <div className="flex justify-center gap-4 flex-wrap">
+              <button
+                onClick={() => {
+                  saveGame();
+                  alert('Game saved!');
+                }}
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors"
+              >
+                <Save size={16} />
+                Save Game
+              </button>
               <button
                 onClick={() => setCurrentView('tournament')}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors"
@@ -2512,10 +2602,13 @@ Examples:
                 Back to Tournament
               </button>
               <button
-                onClick={resetTournament}
+                onClick={() => {
+                  saveGame();
+                  resetTournament();
+                }}
                 className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors"
               >
-                New Tournament
+                Save & New Tournament
               </button>
             </div>
           </div>
