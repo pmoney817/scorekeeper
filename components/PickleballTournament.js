@@ -46,7 +46,8 @@ const PickleballTournament = () => {
       const saved = localStorage.getItem('pickleball-tournament');
       if (saved) {
         const data = JSON.parse(saved);
-        if (data.currentView) setCurrentView(data.currentView);
+        if (data.currentView && data.currentView !== 'setup') setCurrentView(data.currentView);
+        if (data.currentView === 'setup' && data.matches && data.matches.length > 0) setCurrentView('setup');
         if (data.tournamentType) setTournamentType(data.tournamentType);
         if (data.participantType) setParticipantType(data.participantType);
         if (data.participants) setParticipants(data.participants);
