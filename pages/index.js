@@ -1,5 +1,5 @@
-import PickleballTournament from '../components/PickleballTournament';
+import HomePage from '../components/HomePage';
 
 export default function Home() {
-  return <PickleballTournament />;
+  return <HomePage />;
 }

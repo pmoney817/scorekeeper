@@ -1,15 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Users, Trophy, Play, Edit3, Trash2, Shuffle, Target, Crown, MessageCircle, Send, Bot, Mic } from 'lucide-react';
+import Link from 'next/link';
+import { Plus, Users, Trophy, Play, Edit3, Trash2, Shuffle, Target, Crown, MessageCircle, Send, Bot, Mic, ChevronUp, ChevronDown, ArrowUp, ArrowDown, Home } from 'lucide-react';
 
 const PickleballTournament = () => {
   const [currentView, setCurrentView] = useState('setup'); // setup, ai-setup, tournament, match, results
-  const [tournamentType, setTournamentType] = useState('roundrobin'); // roundrobin, bracket
+  const [tournamentType, setTournamentType] = useState('roundrobin'); // roundrobin, bracket, poolplay, ladder
+  const [tournamentPhase, setTournamentPhase] = useState(null); // null, 'pools', 'bracket', 'playing', 'session-results'
+  const [ladderSession, setLadderSession] = useState(0);
+  const [courtAssignments, setCourtAssignments] = useState({});
   const [participantType, setParticipantType] = useState('individual'); // individual, team
   const [participants, setParticipants] = useState([]);
   const [matches, setMatches] = useState([]);
   const [currentMatch, setCurrentMatch] = useState(null);
   const [tournamentSettings, setTournamentSettings] = useState({
-    rounds: 1,
+    rounds: 6,
+    courts: 1,
+    numPools: 1,
+    poolSize: 4,
+    advanceCount: 2,
     pointsToWin: 11,
     winByTwo: true
   });
@@ -29,6 +37,54 @@ const PickleballTournament = () => {
     team1: 0,
     team2: 0
   });
+
+  const [hydrated, setHydrated] = useState(false);
+
+  // Restore state from localStorage on mount
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('pickleball-tournament');
+      if (saved) {
+        const data = JSON.parse(saved);
+        if (data.currentView) setCurrentView(data.currentView);
+        if (data.tournamentType) setTournamentType(data.tournamentType);
+        if (data.participantType) setParticipantType(data.participantType);
+        if (data.participants) setParticipants(data.participants);
+        if (data.matches) setMatches(data.matches);
+        if (data.currentMatch) setCurrentMatch(data.currentMatch);
+        if (data.tournamentSettings) setTournamentSettings(data.tournamentSettings);
+        if (data.score) setScore(data.score);
+        if (data.tournamentPhase) setTournamentPhase(data.tournamentPhase);
+        if (data.ladderSession) setLadderSession(data.ladderSession);
+        if (data.courtAssignments) setCourtAssignments(data.courtAssignments);
+      }
+    } catch (e) {
+      console.error('Failed to restore tournament state:', e);
+    }
+    setHydrated(true);
+  }, []);
+
+  // Save state to localStorage on changes
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      localStorage.setItem('pickleball-tournament', JSON.stringify({
+        currentView,
+        tournamentType,
+        tournamentPhase,
+        participantType,
+        participants,
+        matches,
+        currentMatch,
+        tournamentSettings,
+        score,
+        ladderSession,
+        courtAssignments,
+      }));
+    } catch (e) {
+      console.error('Failed to save tournament state:', e);
+    }
+  }, [hydrated, currentView, tournamentType, tournamentPhase, participantType, participants, matches, currentMatch, tournamentSettings, score, ladderSession, courtAssignments]);
 
   // AI Setup functionality
   const processAISetup = async (userMessage) => {
@@ -62,16 +118,12 @@ Examples:
     ];
 
     try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
+      const response = await fetch("/api/ai-setup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          messages: messages,
-        })
+        body: JSON.stringify({ messages }),
       });
 
       const data = await response.json();
@@ -140,7 +192,7 @@ Examples:
     // Add participants
     if (extractedData.participants && extractedData.participants.length > 0) {
       const newParticipants = extractedData.participants.map((p, index) => ({
-        id: Date.now() + index,
+        id: crypto.randomUUID(),
         type: extractedData.participantType || 'individual',
         name: p.name,
         partner: p.partner || null,
@@ -162,7 +214,7 @@ Examples:
     if (!newParticipant.name.trim()) return;
     
     const participant = {
-      id: Date.now(),
+      id: crypto.randomUUID(),
       type: participantType,
       name: newParticipant.name.trim(),
       partner: participantType === 'team' ? newParticipant.partner.trim() : null,
@@ -181,48 +233,80 @@ Examples:
 
   // Generate Round Robin matches
   const generateRoundRobin = () => {
-    if (participants.length < 2) {
-      alert('Need at least 2 participants for a tournament');
+    if (participants.length < 4) {
+      alert('Need at least 4 players for a doubles round robin');
       return;
     }
 
-    const allMatches = [];
-    const shuffledParticipants = [...participants].sort(() => Math.random() - 0.5);
+    const players = [...participants].sort(() => Math.random() - 0.5);
+    const maxCourts = Math.floor(players.length / 4);
+    const numCourts = Math.min(tournamentSettings.courts, maxCourts);
 
-    // Generate all possible combinations
-    for (let i = 0; i < shuffledParticipants.length; i++) {
-      for (let j = i + 1; j < shuffledParticipants.length; j++) {
-        for (let round = 1; round <= tournamentSettings.rounds; round++) {
-          allMatches.push({
-            id: `${shuffledParticipants[i].id}-${shuffledParticipants[j].id}-${round}`,
-            round,
-            team1: shuffledParticipants[i],
-            team2: shuffledParticipants[j],
-            score1: null,
-            score2: null,
-            winner: null,
-            completed: false
-          });
+    // Generate all unique 2v2 pairings from all groups of 4 players
+    const allPairings = [];
+    for (let i = 0; i < players.length; i++) {
+      for (let j = i + 1; j < players.length; j++) {
+        for (let k = j + 1; k < players.length; k++) {
+          for (let l = k + 1; l < players.length; l++) {
+            allPairings.push({ team1: [players[i], players[j]], team2: [players[k], players[l]] });
+            allPairings.push({ team1: [players[i], players[k]], team2: [players[j], players[l]] });
+            allPairings.push({ team1: [players[i], players[l]], team2: [players[j], players[k]] });
+          }
         }
       }
     }
 
-    // Shuffle matches within each round for variety
-    const matchesByRound = {};
-    allMatches.forEach(match => {
-      if (!matchesByRound[match.round]) {
-        matchesByRound[match.round] = [];
+    // Greedily pick pairings to balance games per player, multiple courts per round
+    const playCounts = {};
+    players.forEach(p => playCounts[p.id] = 0);
+    const usedPairings = new Set();
+    const allMatches = [];
+
+    for (let round = 1; round <= tournamentSettings.rounds; round++) {
+      const usedThisRound = new Set();
+
+      for (let court = 1; court <= numCourts; court++) {
+        let bestPairing = null;
+        let bestScore = Infinity;
+        const candidates = [...allPairings].sort(() => Math.random() - 0.5);
+
+        for (const pairing of candidates) {
+          const ids = [...pairing.team1, ...pairing.team2].map(p => p.id);
+
+          // Skip if any player is already on another court this round
+          if (ids.some(id => usedThisRound.has(id))) continue;
+
+          const key = [...ids].sort().join('-');
+          const repeatPenalty = usedPairings.has(key) ? 1000 : 0;
+          const score = ids.reduce((sum, id) => sum + playCounts[id], 0) + repeatPenalty;
+
+          if (score < bestScore) {
+            bestScore = score;
+            bestPairing = pairing;
+          }
+        }
+
+        if (!bestPairing) break; // Not enough available players for another court
+
+        const ids = [...bestPairing.team1, ...bestPairing.team2].map(p => p.id);
+        ids.forEach(id => { playCounts[id]++; usedThisRound.add(id); });
+        usedPairings.add([...ids].sort().join('-'));
+
+        allMatches.push({
+          id: `round-${round}-court-${court}`,
+          round,
+          court,
+          team1: bestPairing.team1,
+          team2: bestPairing.team2,
+          score1: null,
+          score2: null,
+          winner: null,
+          completed: false
+        });
       }
-      matchesByRound[match.round].push(match);
-    });
+    }
 
-    const shuffledMatches = [];
-    Object.keys(matchesByRound).forEach(round => {
-      const roundMatches = matchesByRound[round].sort(() => Math.random() - 0.5);
-      shuffledMatches.push(...roundMatches);
-    });
-
-    setMatches(shuffledMatches);
+    setMatches(allMatches);
     setCurrentView('tournament');
   };
 
@@ -233,29 +317,53 @@ Examples:
       return;
     }
 
-    // For simplicity, create a single elimination bracket
+    // Create a single elimination bracket with bye support
     const shuffledParticipants = [...participants].sort(() => Math.random() - 0.5);
     const bracketMatches = [];
-    
+
+    // Pad to next power of 2 for balanced bracket
+    const bracketSize = Math.pow(2, Math.ceil(Math.log2(shuffledParticipants.length)));
+    const byeCount = bracketSize - shuffledParticipants.length;
+
     // First round
-    for (let i = 0; i < shuffledParticipants.length; i += 2) {
-      if (i + 1 < shuffledParticipants.length) {
+    const firstRoundMatchCount = bracketSize / 2;
+    for (let i = 0; i < firstRoundMatchCount; i++) {
+      const p1Index = i * 2;
+      const p2Index = i * 2 + 1;
+      const team1 = p1Index < shuffledParticipants.length ? shuffledParticipants[p1Index] : null;
+      const team2 = p2Index < shuffledParticipants.length ? shuffledParticipants[p2Index] : null;
+
+      if (team1 && team2) {
         bracketMatches.push({
-          id: `bracket-${i/2}-round-1`,
+          id: `bracket-${i}-round-1`,
           round: 1,
-          team1: shuffledParticipants[i],
-          team2: shuffledParticipants[i + 1],
+          team1,
+          team2,
           score1: null,
           score2: null,
           winner: null,
           completed: false,
-          bracketPosition: i / 2
+          bracketPosition: i
+        });
+      } else if (team1) {
+        // Bye: team1 auto-advances, mark match as completed
+        bracketMatches.push({
+          id: `bracket-${i}-round-1`,
+          round: 1,
+          team1,
+          team2: null,
+          score1: null,
+          score2: null,
+          winner: team1,
+          completed: true,
+          bracketPosition: i,
+          isBye: true
         });
       }
     }
 
     // Generate subsequent rounds (placeholders)
-    let currentRoundMatches = bracketMatches.length;
+    let currentRoundMatches = firstRoundMatchCount;
     let round = 2;
     while (currentRoundMatches > 1) {
       const nextRoundMatches = Math.ceil(currentRoundMatches / 2);
@@ -276,8 +384,369 @@ Examples:
       round++;
     }
 
+    // Advance bye winners into second round
+    const byeWinners = bracketMatches.filter(m => m.isBye && m.winner);
+    byeWinners.forEach(byeMatch => {
+      const nextRoundMatch = bracketMatches.find(m =>
+        m.round === 2 &&
+        Math.floor(byeMatch.bracketPosition / 2) === m.bracketPosition
+      );
+      if (nextRoundMatch) {
+        if (!nextRoundMatch.team1) {
+          nextRoundMatch.team1 = byeMatch.winner;
+        } else {
+          nextRoundMatch.team2 = byeMatch.winner;
+        }
+      }
+    });
+
     setMatches(bracketMatches);
     setCurrentView('tournament');
+  };
+
+  // Generate Pool Play into Bracket
+  const generatePoolPlay = () => {
+    const { numPools, poolSize } = tournamentSettings;
+    const totalSlots = numPools * poolSize;
+    if (participants.length < 2) {
+      alert('Need at least 2 teams for pool play');
+      return;
+    }
+    if (participants.length > totalSlots) {
+      alert(`${participants.length} teams don't fit in ${numPools} pools of ${poolSize}. Increase pools or pool size.`);
+      return;
+    }
+
+    const shuffled = [...participants].sort(() => Math.random() - 0.5);
+
+    // Distribute teams across pools (round-robin assignment, respecting pool size)
+    const pools = Array.from({ length: numPools }, () => []);
+    shuffled.forEach((team, i) => {
+      pools[i % numPools].push(team);
+    });
+
+    // Generate all pool matches (unscheduled)
+    const unscheduled = [];
+    pools.forEach((poolTeams, poolIndex) => {
+      for (let i = 0; i < poolTeams.length; i++) {
+        for (let j = i + 1; j < poolTeams.length; j++) {
+          unscheduled.push({
+            pool: poolIndex + 1,
+            phase: 'pool',
+            team1: poolTeams[i],
+            team2: poolTeams[j],
+            score1: null,
+            score2: null,
+            winner: null,
+            completed: false
+          });
+        }
+      }
+    });
+
+    // Schedule into rounds with court assignments
+    const numCourts = tournamentSettings.courts;
+    const allMatches = [];
+    const remaining = [...unscheduled];
+    let round = 0;
+
+    while (remaining.length > 0) {
+      round++;
+      const usedTeamIds = new Set();
+      let courtNum = 0;
+
+      for (let i = remaining.length - 1; i >= 0 && courtNum < numCourts; i--) {
+        const match = remaining[i];
+        const t1Id = match.team1.id;
+        const t2Id = match.team2.id;
+        if (!usedTeamIds.has(t1Id) && !usedTeamIds.has(t2Id)) {
+          courtNum++;
+          usedTeamIds.add(t1Id);
+          usedTeamIds.add(t2Id);
+          allMatches.push({
+            ...match,
+            id: `pool-${match.pool}-round-${round}-court-${courtNum}`,
+            round,
+            court: courtNum
+          });
+          remaining.splice(i, 1);
+        }
+      }
+    }
+
+    setMatches(allMatches);
+    setTournamentPhase('pools');
+    setCurrentView('tournament');
+  };
+
+  // Get standings for a specific pool
+  const getPoolStandings = (poolNumber) => {
+    const poolMatches = matches.filter(m => m.pool === poolNumber && m.phase === 'pool');
+    const teamIds = new Set();
+    poolMatches.forEach(m => {
+      teamIds.add(m.team1.id);
+      teamIds.add(m.team2.id);
+    });
+
+    return participants
+      .filter(p => teamIds.has(p.id))
+      .map(p => {
+        const poolWins = poolMatches.filter(m => m.completed && m.winner && m.winner.id === p.id).length;
+        const poolLosses = poolMatches.filter(m => m.completed && m.winner && m.winner.id !== p.id && (m.team1.id === p.id || m.team2.id === p.id)).length;
+        const poolPoints = poolMatches
+          .filter(m => m.completed && (m.team1.id === p.id || m.team2.id === p.id))
+          .reduce((sum, m) => sum + (m.team1.id === p.id ? m.score1 : m.score2), 0);
+        const totalGames = poolWins + poolLosses;
+        return {
+          ...p,
+          poolWins,
+          poolLosses,
+          poolPoints,
+          winPercentage: totalGames > 0 ? (poolWins / totalGames) * 100 : 0
+        };
+      })
+      .sort((a, b) => {
+        if (b.poolWins !== a.poolWins) return b.poolWins - a.poolWins;
+        if (b.winPercentage !== a.winPercentage) return b.winPercentage - a.winPercentage;
+        return b.poolPoints - a.poolPoints;
+      });
+  };
+
+  // Advance top teams from pools to bracket
+  const advanceToBracket = () => {
+    const { advanceCount } = tournamentSettings;
+    const poolNumbers = [...new Set(matches.filter(m => m.phase === 'pool').map(m => m.pool))].sort((a, b) => a - b);
+
+    // Get top teams from each pool
+    const advancingTeams = [];
+    poolNumbers.forEach(poolNum => {
+      const standings = getPoolStandings(poolNum);
+      const topTeams = standings.slice(0, advanceCount);
+      topTeams.forEach((team, seed) => {
+        advancingTeams.push({ ...team, poolSeed: seed + 1, fromPool: poolNum });
+      });
+    });
+
+    // Cross-seed: alternate pool origins so same-pool teams meet later
+    // Sort by seed first, then alternate pools
+    const seeded = [];
+    const maxSeed = advanceCount;
+    for (let seed = 1; seed <= maxSeed; seed++) {
+      const teamsAtSeed = advancingTeams.filter(t => t.poolSeed === seed);
+      if (seed % 2 === 0) teamsAtSeed.reverse();
+      seeded.push(...teamsAtSeed);
+    }
+
+    // Generate bracket from seeded teams
+    const bracketSize = Math.pow(2, Math.ceil(Math.log2(seeded.length)));
+    const bracketMatches = [];
+
+    const firstRoundMatchCount = bracketSize / 2;
+    for (let i = 0; i < firstRoundMatchCount; i++) {
+      const p1 = i < seeded.length ? seeded[i] : null;
+      const p2 = (bracketSize - 1 - i) < seeded.length ? seeded[bracketSize - 1 - i] : null;
+
+      if (p1 && p2) {
+        bracketMatches.push({
+          id: `bracket-${i}-round-1`,
+          round: 1,
+          phase: 'bracket',
+          team1: p1,
+          team2: p2,
+          score1: null,
+          score2: null,
+          winner: null,
+          completed: false,
+          bracketPosition: i
+        });
+      } else if (p1) {
+        bracketMatches.push({
+          id: `bracket-${i}-round-1`,
+          round: 1,
+          phase: 'bracket',
+          team1: p1,
+          team2: null,
+          score1: null,
+          score2: null,
+          winner: p1,
+          completed: true,
+          bracketPosition: i,
+          isBye: true
+        });
+      }
+    }
+
+    // Generate subsequent round placeholders
+    let currentRoundMatches = firstRoundMatchCount;
+    let round = 2;
+    while (currentRoundMatches > 1) {
+      const nextRoundMatches = Math.ceil(currentRoundMatches / 2);
+      for (let i = 0; i < nextRoundMatches; i++) {
+        bracketMatches.push({
+          id: `bracket-${i}-round-${round}`,
+          round,
+          phase: 'bracket',
+          team1: null,
+          team2: null,
+          score1: null,
+          score2: null,
+          winner: null,
+          completed: false,
+          bracketPosition: i
+        });
+      }
+      currentRoundMatches = nextRoundMatches;
+      round++;
+    }
+
+    // Advance bye winners
+    const byeWinners = bracketMatches.filter(m => m.isBye && m.winner);
+    byeWinners.forEach(byeMatch => {
+      const nextRoundMatch = bracketMatches.find(m =>
+        m.round === 2 &&
+        Math.floor(byeMatch.bracketPosition / 2) === m.bracketPosition
+      );
+      if (nextRoundMatch) {
+        if (!nextRoundMatch.team1) {
+          nextRoundMatch.team1 = byeMatch.winner;
+        } else {
+          nextRoundMatch.team2 = byeMatch.winner;
+        }
+      }
+    });
+
+    // Keep pool matches, add bracket matches
+    setMatches([...matches, ...bracketMatches]);
+    setTournamentPhase('bracket');
+    setCurrentView('tournament');
+  };
+
+  // Ladder League: move participant up/down in list
+  const moveParticipantUp = (index) => {
+    if (index <= 0) return;
+    const updated = [...participants];
+    [updated[index - 1], updated[index]] = [updated[index], updated[index - 1]];
+    setParticipants(updated);
+  };
+
+  const moveParticipantDown = (index) => {
+    if (index >= participants.length - 1) return;
+    const updated = [...participants];
+    [updated[index], updated[index + 1]] = [updated[index + 1], updated[index]];
+    setParticipants(updated);
+  };
+
+  // Generate a Ladder League session
+  const generateLadderSession = (playerOrder) => {
+    if (playerOrder.length < 4 || playerOrder.length % 4 !== 0) {
+      alert('Need a multiple of 4 players for ladder league (4, 8, 12, etc.)');
+      return;
+    }
+
+    const numCourts = playerOrder.length / 4;
+    const assignments = {};
+    const allMatches = [];
+
+    for (let c = 0; c < numCourts; c++) {
+      const courtNum = numCourts - c; // first 4 players = top court
+      const courtPlayers = playerOrder.slice(c * 4, c * 4 + 4);
+      assignments[courtNum] = courtPlayers;
+
+      // 3 unique pairings, each played twice = 6 games
+      const pairings = [
+        { team1: [courtPlayers[0], courtPlayers[1]], team2: [courtPlayers[2], courtPlayers[3]] },
+        { team1: [courtPlayers[0], courtPlayers[2]], team2: [courtPlayers[1], courtPlayers[3]] },
+        { team1: [courtPlayers[0], courtPlayers[3]], team2: [courtPlayers[1], courtPlayers[2]] },
+      ];
+
+      let gameNum = 0;
+      for (const pairing of pairings) {
+        for (let rep = 1; rep <= 2; rep++) {
+          gameNum++;
+          allMatches.push({
+            id: `ladder-s${ladderSession + 1}-court${courtNum}-g${gameNum}`,
+            round: gameNum,
+            court: courtNum,
+            phase: 'ladder',
+            session: ladderSession + 1,
+            team1: pairing.team1,
+            team2: pairing.team2,
+            score1: null,
+            score2: null,
+            winner: null,
+            completed: false
+          });
+        }
+      }
+    }
+
+    setCourtAssignments(assignments);
+    setMatches(allMatches);
+    setLadderSession(prev => prev + 1);
+    setTournamentPhase('playing');
+    setCurrentView('tournament');
+  };
+
+  // Get standings for a specific court in ladder
+  const getLadderCourtStandings = (courtNum) => {
+    const courtPlayers = courtAssignments[courtNum] || [];
+    const courtMatches = matches.filter(m => m.court === courtNum && m.phase === 'ladder' && m.completed);
+
+    return courtPlayers.map(player => {
+      let totalPoints = 0;
+      courtMatches.forEach(m => {
+        const onTeam1 = m.team1.some(p => p.id === player.id);
+        const onTeam2 = m.team2.some(p => p.id === player.id);
+        if (onTeam1) totalPoints += m.score1 || 0;
+        if (onTeam2) totalPoints += m.score2 || 0;
+      });
+      return { ...player, totalPoints };
+    }).sort((a, b) => b.totalPoints - a.totalPoints);
+  };
+
+  // Calculate ladder movements and return new player order
+  const calculateLadderMovement = () => {
+    const courtNums = Object.keys(courtAssignments).map(Number).sort((a, b) => a - b);
+    const topCourt = Math.max(...courtNums);
+    const bottomCourt = Math.min(...courtNums);
+
+    // Get standings per court and determine movers
+    const movers = {}; // { courtNum: { up: playerId, down: playerId } }
+    courtNums.forEach(courtNum => {
+      const standings = getLadderCourtStandings(courtNum);
+      movers[courtNum] = {
+        up: courtNum < topCourt ? standings[0] : null,
+        down: courtNum > bottomCourt ? standings[standings.length - 1] : null,
+      };
+    });
+
+    // Build new order: for each court, swap movers between adjacent courts
+    const newAssignments = {};
+    courtNums.forEach(courtNum => {
+      newAssignments[courtNum] = [...(courtAssignments[courtNum] || [])];
+    });
+
+    // Process swaps between adjacent courts
+    for (let i = 0; i < courtNums.length - 1; i++) {
+      const lowerCourt = courtNums[i];
+      const upperCourt = courtNums[i + 1];
+      const goingUp = movers[lowerCourt].up;
+      const goingDown = movers[upperCourt].down;
+
+      if (goingUp && goingDown) {
+        // Swap them
+        newAssignments[lowerCourt] = newAssignments[lowerCourt].map(p => p.id === goingUp.id ? goingDown : p);
+        newAssignments[upperCourt] = newAssignments[upperCourt].map(p => p.id === goingDown.id ? goingUp : p);
+      }
+    }
+
+    // Flatten back to ordered array (top court first)
+    const newOrder = [];
+    courtNums.sort((a, b) => b - a).forEach(courtNum => {
+      newOrder.push(...newAssignments[courtNum]);
+    });
+
+    return newOrder;
   };
 
   // Start a match
@@ -311,60 +780,102 @@ Examples:
       return;
     }
 
-    const winner = team1Score > team2Score ? currentMatch.team1 : currentMatch.team2;
-    const loser = team1Score > team2Score ? currentMatch.team2 : currentMatch.team1;
+    const winnerTeam = team1Score > team2Score ? currentMatch.team1 : currentMatch.team2;
+    const loserTeam = team1Score > team2Score ? currentMatch.team2 : currentMatch.team1;
+    const winScore = Math.max(team1Score, team2Score);
+    const loseScore = Math.min(team1Score, team2Score);
 
     // Update match
-    const updatedMatches = matches.map(m => {
+    let updatedMatches = matches.map(m => {
       if (m.id === currentMatch.id) {
         return {
           ...m,
           score1: team1Score,
           score2: team2Score,
-          winner: winner,
+          winner: winnerTeam,
           completed: true
         };
       }
       return m;
     });
 
-    // Update participant stats
+    // Update participant stats (handles both arrays for doubles and single for bracket)
+    const winnerIds = Array.isArray(winnerTeam) ? winnerTeam.map(p => p.id) : [winnerTeam.id];
+    const loserIds = Array.isArray(loserTeam) ? loserTeam.map(p => p.id) : [loserTeam.id];
+
     const updatedParticipants = participants.map(p => {
-      if (p.id === winner.id) {
-        return { ...p, wins: p.wins + 1, points: p.points + (team1Score > team2Score ? team1Score : team2Score) };
+      if (winnerIds.includes(p.id)) {
+        return { ...p, wins: p.wins + 1, points: p.points + winScore };
       }
-      if (p.id === loser.id) {
-        return { ...p, losses: p.losses + 1, points: p.points + (team1Score > team2Score ? team2Score : team1Score) };
+      if (loserIds.includes(p.id)) {
+        return { ...p, losses: p.losses + 1, points: p.points + loseScore };
       }
       return p;
     });
 
-    setMatches(updatedMatches);
-    setParticipants(updatedParticipants);
+    // For bracket tournaments (or bracket phase of pool play), advance winner
+    const isBracketMatch = tournamentType === 'bracket' || (tournamentType === 'poolplay' && tournamentPhase === 'bracket');
+    if (isBracketMatch && currentMatch.bracketPosition !== undefined) {
+      const bracketMatches = updatedMatches.filter(m => m.phase === 'bracket' || tournamentType === 'bracket');
+      const maxRound = Math.max(...bracketMatches.map(m => m.round));
+      if (currentMatch.round < maxRound) {
+        const nextRoundMatch = updatedMatches.find(m =>
+          (m.phase === 'bracket' || tournamentType === 'bracket') &&
+          m.round === currentMatch.round + 1 &&
+          Math.floor(currentMatch.bracketPosition / 2) === m.bracketPosition
+        );
 
-    // For bracket tournaments, advance winner
-    if (tournamentType === 'bracket' && currentMatch.round < Math.max(...matches.map(m => m.round))) {
-      const nextRoundMatch = matches.find(m => 
-        m.round === currentMatch.round + 1 && 
-        Math.floor(currentMatch.bracketPosition / 2) === m.bracketPosition
-      );
-      
-      if (nextRoundMatch) {
-        const updatedNextRoundMatches = updatedMatches.map(m => {
-          if (m.id === nextRoundMatch.id) {
-            return {
-              ...m,
-              team1: m.team1 ? m.team1 : winner,
-              team2: m.team1 ? winner : m.team2
-            };
-          }
-          return m;
-        });
-        setMatches(updatedNextRoundMatches);
+        if (nextRoundMatch) {
+          updatedMatches = updatedMatches.map(m => {
+            if (m.id === nextRoundMatch.id) {
+              return {
+                ...m,
+                team1: m.team1 ? m.team1 : winnerTeam,
+                team2: m.team1 ? winnerTeam : m.team2
+              };
+            }
+            return m;
+          });
+        }
       }
     }
 
-    setCurrentView('tournament');
+    setMatches(updatedMatches);
+    setParticipants(updatedParticipants);
+
+    // Pool play: check if pool phase is done → advance to bracket
+    if (tournamentType === 'poolplay' && tournamentPhase === 'pools') {
+      const poolMatches = updatedMatches.filter(m => m.phase === 'pool');
+      if (poolMatches.every(m => m.completed)) {
+        setCurrentMatch(null);
+        setTimeout(() => advanceToBracket(), 100);
+        return;
+      }
+    }
+
+    // Pool play bracket phase: check if bracket is done
+    if (tournamentType === 'poolplay' && tournamentPhase === 'bracket') {
+      const bracketMatches = updatedMatches.filter(m => m.phase === 'bracket');
+      if (bracketMatches.every(m => m.completed)) {
+        setCurrentView('results');
+        setCurrentMatch(null);
+        return;
+      }
+    }
+
+    // Ladder: check if all session matches are done
+    if (tournamentType === 'ladder') {
+      const ladderMatches = updatedMatches.filter(m => m.phase === 'ladder');
+      if (ladderMatches.every(m => m.completed)) {
+        setTournamentPhase('session-results');
+      }
+      setCurrentView('tournament');
+      setCurrentMatch(null);
+      return;
+    }
+
+    const allComplete = updatedMatches.every(m => m.completed);
+    setCurrentView(allComplete && tournamentType === 'roundrobin' ? 'results' : 'tournament');
     setCurrentMatch(null);
   };
 
@@ -386,15 +897,22 @@ Examples:
     setMatches([]);
     setCurrentMatch(null);
     setParticipants(participants.map(p => ({ ...p, wins: 0, losses: 0, points: 0 })));
+    setTournamentPhase(null);
+    setLadderSession(0);
+    setCourtAssignments({});
     setAiMessages([]);
     setExtractedData(null);
     setUserInput('');
     setCurrentView('setup');
+    localStorage.removeItem('pickleball-tournament');
   };
 
   const getDisplayName = (participant) => {
     if (!participant) return 'TBD';
-    return participant.type === 'team' && participant.partner 
+    if (Array.isArray(participant)) {
+      return participant.map(p => p.name).join(' & ');
+    }
+    return participant.type === 'team' && participant.partner
       ? `${participant.name} & ${participant.partner}`
       : participant.name;
   };
@@ -411,6 +929,12 @@ Examples:
           </h1>
           
           <div className="flex gap-2">
+            <Link href="/">
+              <span className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors cursor-pointer">
+                <Home size={16} />
+                Home
+              </span>
+            </Link>
             {currentView === 'setup' && (
               <button
                 onClick={() => setCurrentView('ai-setup')}
@@ -438,6 +962,14 @@ Examples:
                 >
                   Tournament
                 </button>
+                {(matches.length > 0 && matches.every(m => m.completed)) || (tournamentType === 'ladder' && tournamentPhase === 'session-results') ? (
+                  <button
+                    onClick={() => setCurrentView('results')}
+                    className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg transition-colors"
+                  >
+                    Results
+                  </button>
+                ) : null}
                 <button
                   onClick={resetTournament}
                   className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors"
@@ -623,6 +1155,8 @@ Examples:
                   >
                     <option value="roundrobin">Round Robin</option>
                     <option value="bracket">Bracket Tournament</option>
+                    <option value="poolplay">Pool Play into Bracket</option>
+                    <option value="ladder">Ladder League</option>
                   </select>
                 </div>
                 
@@ -638,23 +1172,88 @@ Examples:
                   </select>
                 </div>
                 
-                {tournamentType === 'roundrobin' && (
+                {(tournamentType === 'roundrobin' || tournamentType === 'poolplay') && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Rounds</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Number of Courts</label>
                     <input
                       type="number"
                       min="1"
-                      max="5"
-                      value={tournamentSettings.rounds}
+                      max="10"
+                      value={tournamentSettings.courts}
                       onChange={(e) => setTournamentSettings({
                         ...tournamentSettings,
-                        rounds: parseInt(e.target.value) || 1
+                        courts: parseInt(e.target.value) || 1
                       })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
                 )}
-                
+
+                {tournamentType === 'roundrobin' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Rounds</label>
+                      <input
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={tournamentSettings.rounds}
+                        onChange={(e) => setTournamentSettings({
+                          ...tournamentSettings,
+                          rounds: parseInt(e.target.value) || 1
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {tournamentType === 'poolplay' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Number of Pools</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={tournamentSettings.numPools}
+                        onChange={(e) => setTournamentSettings({
+                          ...tournamentSettings,
+                          numPools: parseInt(e.target.value) || 1
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Teams per Pool</label>
+                      <input
+                        type="number"
+                        min="2"
+                        value={tournamentSettings.poolSize}
+                        onChange={(e) => setTournamentSettings({
+                          ...tournamentSettings,
+                          poolSize: parseInt(e.target.value) || 4
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Advance to Bracket</label>
+                      <select
+                        value={tournamentSettings.advanceCount}
+                        onChange={(e) => setTournamentSettings({
+                          ...tournamentSettings,
+                          advanceCount: parseInt(e.target.value)
+                        })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value={1}>Top 1 per pool</option>
+                        <option value={2}>Top 2 per pool</option>
+                        <option value={3}>Top 3 per pool</option>
+                      </select>
+                    </div>
+                  </>
+                )}
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Points to Win</label>
                   <select
@@ -731,28 +1330,68 @@ Examples:
                 </h2>
                 
                 <div className="p-4 space-y-2">
-                  {participants.map((participant) => (
-                    <div key={participant.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                      <span className="font-medium">{getDisplayName(participant)}</span>
-                      <button
-                        onClick={() => removeParticipant(participant.id)}
-                        className="text-red-600 hover:text-red-800 p-1"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
+                  {participants.map((participant, index) => (
+                    <React.Fragment key={participant.id}>
+                      {tournamentType === 'ladder' && index % 4 === 0 && (
+                        <div className="text-sm font-semibold text-purple-600 mt-3 mb-1 flex items-center gap-2">
+                          <span className="bg-purple-100 px-2 py-0.5 rounded">
+                            Court {Math.floor(participants.length / 4) - Math.floor(index / 4)}
+                            {index === 0 ? ' (Top)' : index + 4 >= participants.length ? ' (Bottom)' : ''}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                        <span className="font-medium">{getDisplayName(participant)}</span>
+                        <div className="flex items-center gap-1">
+                          {tournamentType === 'ladder' && (
+                            <>
+                              <button
+                                onClick={() => moveParticipantUp(index)}
+                                disabled={index === 0}
+                                className="text-gray-600 hover:text-blue-600 disabled:text-gray-300 p-1"
+                              >
+                                <ChevronUp size={16} />
+                              </button>
+                              <button
+                                onClick={() => moveParticipantDown(index)}
+                                disabled={index === participants.length - 1}
+                                className="text-gray-600 hover:text-blue-600 disabled:text-gray-300 p-1"
+                              >
+                                <ChevronDown size={16} />
+                              </button>
+                            </>
+                          )}
+                          <button
+                            onClick={() => removeParticipant(participant.id)}
+                            className="text-red-600 hover:text-red-800 p-1"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    </React.Fragment>
                   ))}
                 </div>
                 
                 <div className="p-4 border-t border-gray-200">
                   <button
-                    onClick={tournamentType === 'roundrobin' ? generateRoundRobin : generateBracket}
-                    disabled={participants.length < 2}
+                    onClick={() => {
+                      if (tournamentType === 'roundrobin') generateRoundRobin();
+                      else if (tournamentType === 'poolplay') generatePoolPlay();
+                      else if (tournamentType === 'ladder') generateLadderSession(participants);
+                      else generateBracket();
+                    }}
+                    disabled={tournamentType === 'ladder' ? (participants.length < 4 || participants.length % 4 !== 0) : participants.length < 2}
                     className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
                   >
                     <Shuffle size={20} />
-                    Start {tournamentType === 'roundrobin' ? 'Round Robin' : 'Tournament Bracket'}
+                    Start {tournamentType === 'roundrobin' ? 'Round Robin' : tournamentType === 'poolplay' ? 'Pool Play' : tournamentType === 'ladder' ? 'Ladder League' : 'Tournament Bracket'}
                   </button>
+                  {tournamentType === 'ladder' && participants.length > 0 && participants.length % 4 !== 0 && (
+                    <p className="text-sm text-red-500 mt-2 text-center">
+                      Need a multiple of 4 players for ladder league (currently {participants.length})
+                    </p>
+                  )}
                 </div>
               </div>
             )}
@@ -767,17 +1406,313 @@ Examples:
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-semibold flex items-center gap-2">
                 <Trophy className="text-yellow-600" />
-                {tournamentType === 'roundrobin' ? 'Round Robin' : 'Tournament Bracket'}
+                {tournamentType === 'roundrobin' ? 'Round Robin' : tournamentType === 'poolplay' ? (tournamentPhase === 'bracket' ? 'Bracket Play' : 'Pool Play') : tournamentType === 'ladder' ? `Ladder League — Session ${ladderSession}` : 'Tournament Bracket'}
               </h2>
-              
+
               <div className="text-sm text-gray-600">
-                {matches.filter(m => m.completed).length} of {matches.length} matches completed
+                {(() => {
+                  if (tournamentType === 'ladder' && tournamentPhase === 'session-results') {
+                    return 'Session complete';
+                  }
+                  const relevant = tournamentType === 'poolplay'
+                    ? matches.filter(m => m.phase === tournamentPhase)
+                    : matches;
+                  return `${relevant.filter(m => m.completed).length} of ${relevant.length} matches completed`;
+                })()}
               </div>
             </div>
 
             {/* Matches */}
             <div className="grid gap-4">
-              {tournamentType === 'roundrobin' ? (
+              {tournamentType === 'poolplay' ? (
+                // Pool Play display
+                tournamentPhase === 'pools' ? (
+                  // Pool phase: show each pool with standings and matches
+                  [...new Set(matches.filter(m => m.phase === 'pool').map(m => m.pool))].sort((a, b) => a - b).map(poolNum => {
+                    const poolMatches = matches.filter(m => m.pool === poolNum && m.phase === 'pool');
+                    const standings = getPoolStandings(poolNum);
+                    return (
+                      <div key={poolNum} className="bg-gray-50 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold mb-3">Pool {poolNum}</h3>
+
+                        {/* Pool Standings */}
+                        <div className="bg-white rounded-lg border border-gray-200 mb-3">
+                          <table className="w-full text-sm">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-3 py-2 text-left">Team</th>
+                                <th className="px-3 py-2 text-center">W</th>
+                                <th className="px-3 py-2 text-center">L</th>
+                                <th className="px-3 py-2 text-center">Pts</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {standings.map((team, idx) => (
+                                <tr key={team.id} className={idx < tournamentSettings.advanceCount ? 'bg-green-50' : ''}>
+                                  <td className="px-3 py-2 font-medium">{getDisplayName(team)}</td>
+                                  <td className="px-3 py-2 text-center">{team.poolWins}</td>
+                                  <td className="px-3 py-2 text-center">{team.poolLosses}</td>
+                                  <td className="px-3 py-2 text-center">{team.poolPoints}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Pool Matches grouped by round */}
+                        <div className="grid gap-2">
+                          {Object.entries(
+                            poolMatches.reduce((acc, m) => {
+                              if (!acc[m.round]) acc[m.round] = [];
+                              acc[m.round].push(m);
+                              return acc;
+                            }, {})
+                          ).map(([rd, rdMatches]) => (
+                            <div key={rd}>
+                              {Object.keys(poolMatches.reduce((a, m) => { a[m.round] = 1; return a; }, {})).length > 1 && (
+                                <div className="text-xs font-semibold text-gray-500 mb-1">Round {rd}</div>
+                              )}
+                              {rdMatches.map(match => (
+                                <div key={match.id} className={`p-3 rounded-lg border-2 mb-1 ${
+                                  match.completed ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'
+                                }`}>
+                                  {match.court && rdMatches.length > 1 && (
+                                    <div className="text-xs font-semibold text-purple-600 mb-1">Court {match.court}</div>
+                                  )}
+                                  <div className="flex justify-between items-center">
+                                    <div className="flex-1">
+                                      <div className="flex justify-between items-center mb-1">
+                                        <span className="font-medium text-sm">{getDisplayName(match.team1)}</span>
+                                        {match.completed && <span className="font-bold">{match.score1}</span>}
+                                      </div>
+                                      <div className="text-gray-400 text-xs mb-1">vs</div>
+                                      <div className="flex justify-between items-center">
+                                        <span className="font-medium text-sm">{getDisplayName(match.team2)}</span>
+                                        {match.completed && <span className="font-bold">{match.score2}</span>}
+                                      </div>
+                                    </div>
+                                    <div className="ml-3">
+                                      {match.completed ? (
+                                        <span className="text-sm font-medium text-green-600">Done</span>
+                                      ) : (
+                                        <button
+                                          onClick={() => startMatch(match)}
+                                          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-1 text-sm transition-colors"
+                                        >
+                                          <Play size={14} />
+                                          Play
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })
+                ) : (
+                  // Bracket phase: show bracket matches only
+                  Object.entries(
+                    matches.filter(m => m.phase === 'bracket').reduce((acc, match) => {
+                      if (!acc[match.round]) acc[match.round] = [];
+                      acc[match.round].push(match);
+                      return acc;
+                    }, {})
+                  ).map(([round, roundMatches]) => {
+                    const bracketMatches = matches.filter(m => m.phase === 'bracket');
+                    const maxRound = Math.max(...bracketMatches.map(m => m.round));
+                    return (
+                      <div key={round} className="bg-gray-50 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold mb-3">
+                          {round == maxRound ? 'Final' :
+                           round == maxRound - 1 ? 'Semi-Final' :
+                           `Round ${round}`}
+                        </h3>
+                        <div className="grid gap-3">
+                          {roundMatches.map(match => (
+                            <div key={match.id} className={`p-4 rounded-lg border-2 ${
+                              match.completed ? 'bg-green-50 border-green-200' :
+                              match.team1 && match.team2 ? 'bg-white border-gray-200' : 'bg-gray-100 border-gray-300'
+                            }`}>
+                              <div className="flex justify-between items-center">
+                                <div className="flex-1">
+                                  <div className="flex justify-between items-center mb-2">
+                                    <span className="font-medium">{getDisplayName(match.team1)}</span>
+                                    {match.completed && <span className="font-bold text-lg">{match.score1}</span>}
+                                  </div>
+                                  <div className="text-gray-400 text-sm mb-2">vs</div>
+                                  <div className="flex justify-between items-center">
+                                    <span className="font-medium">{getDisplayName(match.team2)}</span>
+                                    {match.completed && <span className="font-bold text-lg">{match.score2}</span>}
+                                  </div>
+                                </div>
+                                <div className="ml-4">
+                                  {match.completed ? (
+                                    <div className="flex items-center gap-2">
+                                      <Crown className="text-yellow-500" size={20} />
+                                      <span className="text-sm font-medium text-green-600">Complete</span>
+                                    </div>
+                                  ) : match.team1 && match.team2 ? (
+                                    <button
+                                      onClick={() => startMatch(match)}
+                                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                                    >
+                                      <Play size={16} />
+                                      Play
+                                    </button>
+                                  ) : (
+                                    <span className="text-gray-500 text-sm">Waiting</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })
+                )
+              ) : tournamentType === 'ladder' ? (
+                // Ladder League display
+                tournamentPhase === 'session-results' ? (
+                  // Session results with standings and movement
+                  <div className="space-y-6">
+                    <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4 text-center">
+                      <h3 className="text-xl font-bold text-yellow-700">Session {ladderSession} Complete</h3>
+                      <p className="text-gray-600 mt-1">Review standings and player movements below</p>
+                    </div>
+
+                    {Object.keys(courtAssignments).map(Number).sort((a, b) => b - a).map(courtNum => {
+                      const standings = getLadderCourtStandings(courtNum);
+                      const courtNums = Object.keys(courtAssignments).map(Number).sort((a, b) => a - b);
+                      const topCourt = Math.max(...courtNums);
+                      const bottomCourt = Math.min(...courtNums);
+
+                      return (
+                        <div key={courtNum} className="bg-white rounded-lg border-2 border-gray-200 overflow-hidden">
+                          <div className={`px-4 py-2 font-semibold text-white ${courtNum === topCourt ? 'bg-purple-600' : courtNum === bottomCourt ? 'bg-gray-500' : 'bg-blue-500'}`}>
+                            Court {courtNum} {courtNum === topCourt ? '(Top)' : courtNum === bottomCourt ? '(Bottom)' : ''}
+                          </div>
+                          <table className="w-full">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-4 py-2 text-left">Rank</th>
+                                <th className="px-4 py-2 text-left">Player</th>
+                                <th className="px-4 py-2 text-center">Points</th>
+                                <th className="px-4 py-2 text-center">Movement</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {standings.map((player, idx) => {
+                                const isTop = idx === 0;
+                                const isBottom = idx === standings.length - 1;
+                                const movesUp = isTop && courtNum < topCourt;
+                                const movesDown = isBottom && courtNum > bottomCourt;
+
+                                return (
+                                  <tr key={player.id} className={movesUp ? 'bg-green-50' : movesDown ? 'bg-red-50' : ''}>
+                                    <td className="px-4 py-2">#{idx + 1}</td>
+                                    <td className="px-4 py-2 font-medium">{player.name}</td>
+                                    <td className="px-4 py-2 text-center font-bold">{player.totalPoints}</td>
+                                    <td className="px-4 py-2 text-center">
+                                      {movesUp && (
+                                        <span className="inline-flex items-center gap-1 text-green-600 font-semibold">
+                                          <ArrowUp size={16} /> Up
+                                        </span>
+                                      )}
+                                      {movesDown && (
+                                        <span className="inline-flex items-center gap-1 text-red-600 font-semibold">
+                                          <ArrowDown size={16} /> Down
+                                        </span>
+                                      )}
+                                      {!movesUp && !movesDown && (
+                                        <span className="text-gray-400">—</span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      );
+                    })}
+
+                    <div className="flex justify-center gap-4">
+                      <button
+                        onClick={() => {
+                          const newOrder = calculateLadderMovement();
+                          generateLadderSession(newOrder);
+                        }}
+                        className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-colors"
+                      >
+                        <Shuffle size={20} />
+                        Next Session
+                      </button>
+                      <button
+                        onClick={() => setCurrentView('results')}
+                        className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-3 rounded-lg font-semibold flex items-center gap-2 transition-colors"
+                      >
+                        <Trophy size={20} />
+                        End League
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  // Playing phase: show courts with match cards
+                  Object.keys(courtAssignments).map(Number).sort((a, b) => b - a).map(courtNum => {
+                    const courtMatches = matches.filter(m => m.court === courtNum && m.phase === 'ladder');
+                    return (
+                      <div key={courtNum} className="bg-gray-50 rounded-lg p-4">
+                        <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                          Court {courtNum}
+                          <span className="text-sm font-normal text-gray-500">
+                            ({courtAssignments[courtNum]?.map(p => p.name).join(', ')})
+                          </span>
+                        </h3>
+                        <div className="grid gap-3">
+                          {courtMatches.map(match => (
+                            <div key={match.id} className={`p-4 rounded-lg border-2 ${
+                              match.completed ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'
+                            }`}>
+                              <div className="text-xs text-gray-500 mb-1">Game {match.round}</div>
+                              <div className="flex justify-between items-center">
+                                <div className="flex-1">
+                                  <div className="flex justify-between items-center mb-2">
+                                    <span className="font-medium">{getDisplayName(match.team1)}</span>
+                                    {match.completed && <span className="font-bold text-lg">{match.score1}</span>}
+                                  </div>
+                                  <div className="text-gray-400 text-sm mb-2">vs</div>
+                                  <div className="flex justify-between items-center">
+                                    <span className="font-medium">{getDisplayName(match.team2)}</span>
+                                    {match.completed && <span className="font-bold text-lg">{match.score2}</span>}
+                                  </div>
+                                </div>
+                                <div className="ml-4">
+                                  {match.completed ? (
+                                    <span className="text-sm font-medium text-green-600">Done</span>
+                                  ) : (
+                                    <button
+                                      onClick={() => startMatch(match)}
+                                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                                    >
+                                      <Play size={16} />
+                                      Play
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })
+                )
+              ) : tournamentType === 'roundrobin' ? (
                 // Round Robin matches grouped by round
                 Object.entries(
                   matches.reduce((acc, match) => {
@@ -793,6 +1728,9 @@ Examples:
                         <div key={match.id} className={`p-4 rounded-lg border-2 ${
                           match.completed ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'
                         }`}>
+                          {match.court && roundMatches.length > 1 && (
+                            <div className="text-xs font-semibold text-purple-600 mb-2">Court {match.court}</div>
+                          )}
                           <div className="flex justify-between items-center">
                             <div className="flex-1">
                               <div className="flex justify-between items-center mb-2">
@@ -898,6 +1836,19 @@ Examples:
               )}
             </div>
 
+            {/* View Final Rankings Button */}
+            {tournamentType === 'roundrobin' && matches.length > 0 && matches.every(m => m.completed) && (
+              <div className="text-center">
+                <button
+                  onClick={() => setCurrentView('results')}
+                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-lg text-lg font-semibold flex items-center gap-2 mx-auto transition-colors"
+                >
+                  <Trophy size={20} />
+                  View Final Rankings
+                </button>
+              </div>
+            )}
+
             {/* Standings for Round Robin */}
             {tournamentType === 'roundrobin' && (
               <div className="bg-white rounded-lg border border-gray-200">
@@ -938,6 +1889,83 @@ Examples:
           </div>
         )}
 
+        {/* Results View */}
+        {currentView === 'results' && (
+          <div className="space-y-6">
+            {/* Champion Banner */}
+            {getStandings().length > 0 && (
+              <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-6 text-center">
+                <Crown className="text-yellow-500 mx-auto mb-2" size={48} />
+                <h2 className="text-3xl font-bold text-yellow-700 mb-1">Champion</h2>
+                <p className="text-2xl font-semibold">{getDisplayName(getStandings()[0])}</p>
+                <p className="text-gray-600 mt-1">
+                  {getStandings()[0].wins}W - {getStandings()[0].losses}L ({getStandings()[0].winPercentage.toFixed(1)}%)
+                </p>
+              </div>
+            )}
+
+            {/* Final Rankings Table */}
+            <div className="bg-white rounded-lg border border-gray-200">
+              <h3 className="text-xl font-semibold p-4 border-b border-gray-200 flex items-center gap-2">
+                <Trophy className="text-yellow-600" size={20} />
+                Final Rankings
+              </h3>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left">Rank</th>
+                      <th className="px-4 py-3 text-left">{participantType === 'team' ? 'Team' : 'Player'}</th>
+                      <th className="px-4 py-3 text-center">Wins</th>
+                      <th className="px-4 py-3 text-center">Losses</th>
+                      <th className="px-4 py-3 text-center">Win %</th>
+                      <th className="px-4 py-3 text-center">Points</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {getStandings().map((participant, index) => (
+                      <tr key={participant.id} className={
+                        index === 0 ? 'bg-yellow-50 font-semibold' :
+                        index === 1 ? 'bg-gray-100' :
+                        index === 2 ? 'bg-orange-50' :
+                        'hover:bg-gray-50'
+                      }>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            {index === 0 && <Crown className="text-yellow-500" size={16} />}
+                            #{index + 1}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">{getDisplayName(participant)}</td>
+                        <td className="px-4 py-3 text-center">{participant.wins}</td>
+                        <td className="px-4 py-3 text-center">{participant.losses}</td>
+                        <td className="px-4 py-3 text-center">{participant.winPercentage.toFixed(1)}%</td>
+                        <td className="px-4 py-3 text-center">{participant.points}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-center gap-4">
+              <button
+                onClick={() => setCurrentView('tournament')}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors"
+              >
+                Back to Tournament
+              </button>
+              <button
+                onClick={resetTournament}
+                className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors"
+              >
+                New Tournament
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Match Play View */}
         {currentView === 'match' && currentMatch && (
           <div className="space-y-6">
@@ -958,41 +1986,25 @@ Examples:
                 {/* Team 1 */}
                 <div className="text-center">
                   <h3 className="text-lg font-semibold mb-4">{getDisplayName(currentMatch.team1)}</h3>
-                  <div className="text-6xl font-bold text-blue-600 mb-4">{score.team1}</div>
-                  <div className="flex justify-center gap-2">
-                    <button
-                      onClick={() => updateScore('team1', 1)}
-                      className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
-                    >
-                      +1
-                    </button>
-                    <button
-                      onClick={() => updateScore('team1', -1)}
-                      className="bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg font-semibold transition-colors"
-                    >
-                      -1
-                    </button>
-                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    value={score.team1}
+                    onChange={(e) => setScore({ ...score, team1: parseInt(e.target.value) || 0 })}
+                    className="w-24 mx-auto text-6xl font-bold text-blue-600 text-center border-b-4 border-blue-300 focus:border-blue-600 focus:outline-none bg-transparent"
+                  />
                 </div>
 
                 {/* Team 2 */}
                 <div className="text-center">
                   <h3 className="text-lg font-semibold mb-4">{getDisplayName(currentMatch.team2)}</h3>
-                  <div className="text-6xl font-bold text-red-600 mb-4">{score.team2}</div>
-                  <div className="flex justify-center gap-2">
-                    <button
-                      onClick={() => updateScore('team2', 1)}
-                      className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
-                    >
-                      +1
-                    </button>
-                    <button
-                      onClick={() => updateScore('team2', -1)}
-                      className="bg-red-600 hover:bg-red-700 text-white px-4 py-3 rounded-lg font-semibold transition-colors"
-                    >
-                      -1
-                    </button>
-                  </div>
+                  <input
+                    type="number"
+                    min="0"
+                    value={score.team2}
+                    onChange={(e) => setScore({ ...score, team2: parseInt(e.target.value) || 0 })}
+                    className="w-24 mx-auto text-6xl font-bold text-red-600 text-center border-b-4 border-red-300 focus:border-red-600 focus:outline-none bg-transparent"
+                  />
                 </div>
               </div>
             </div>
