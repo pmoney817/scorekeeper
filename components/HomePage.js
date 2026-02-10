@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Trophy, Zap, ArrowRight, Sparkles, Target, Menu, X } from 'lucide-react';
+import { Trophy, ArrowRight, Sparkles, Target, Menu, X } from 'lucide-react';
 import Link from 'next/link';
 
 export default function HomePage() {
@@ -35,60 +35,61 @@ export default function HomePage() {
 
       {/* Content */}
       <div className="relative z-10 min-h-screen flex flex-col">
-        {/* Menu */}
-        <div ref={menuRef} className="absolute top-5 left-5 z-20 animate-fade-in-up">
-          <button
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="p-3 bg-white/70 backdrop-blur-md rounded-xl shadow-soft border border-white/40 hover:bg-white/90 transition-all duration-300"
-          >
-            {menuOpen ? <X className="w-6 h-6 text-foreground" /> : <Menu className="w-6 h-6 text-foreground" />}
-          </button>
+        {/* Top bar: Menu + Logo + Daily Vibes */}
+        <div className="px-4 md:px-8 pt-5 pb-4 animate-fade-in-up">
+          <div className="flex items-center gap-4">
+            {/* Menu */}
+            <div ref={menuRef} className="relative z-20">
+              <button
+                onClick={() => setMenuOpen(!menuOpen)}
+                className="p-3 bg-white/70 backdrop-blur-md rounded-xl shadow-soft border border-white/40 hover:bg-white/90 transition-all duration-300"
+              >
+                {menuOpen ? <X className="w-6 h-6 text-foreground" /> : <Menu className="w-6 h-6 text-foreground" />}
+              </button>
 
-          {menuOpen && (
-            <div className="absolute top-14 left-0 bg-white/90 backdrop-blur-md rounded-2xl shadow-elevated border border-white/40 py-2 min-w-[200px] animate-scale-in">
-              <Link href="/tournament" onClick={() => setMenuOpen(false)}>
-                <div className="flex items-center gap-3 px-5 py-3 hover:bg-court/10 transition-colors cursor-pointer">
-                  <Trophy className="w-5 h-5 text-court" />
-                  <span className="font-semibold text-foreground text-sm">Create Game</span>
+              {menuOpen && (
+                <div className="absolute top-14 left-0 bg-white/90 backdrop-blur-md rounded-2xl shadow-elevated border border-white/40 py-2 min-w-[200px] animate-scale-in">
+                  <Link href="/tournament" onClick={() => setMenuOpen(false)}>
+                    <div className="flex items-center gap-3 px-5 py-3 hover:bg-court/10 transition-colors cursor-pointer">
+                      <Trophy className="w-5 h-5 text-court" />
+                      <span className="font-semibold text-foreground text-sm">Create Game</span>
+                    </div>
+                  </Link>
+                  <Link href="/affirmations" onClick={() => setMenuOpen(false)}>
+                    <div className="flex items-center gap-3 px-5 py-3 hover:bg-ball/10 transition-colors cursor-pointer">
+                      <Sparkles className="w-5 h-5 text-ball" />
+                      <span className="font-semibold text-foreground text-sm">Affirmations</span>
+                    </div>
+                  </Link>
+                  <Link href="/drills" onClick={() => setMenuOpen(false)}>
+                    <div className="flex items-center gap-3 px-5 py-3 hover:bg-court/10 transition-colors cursor-pointer">
+                      <Target className="w-5 h-5 text-court" />
+                      <span className="font-semibold text-foreground text-sm">Practice Drills</span>
+                    </div>
+                  </Link>
                 </div>
-              </Link>
-              <Link href="/affirmations" onClick={() => setMenuOpen(false)}>
-                <div className="flex items-center gap-3 px-5 py-3 hover:bg-ball/10 transition-colors cursor-pointer">
-                  <Sparkles className="w-5 h-5 text-ball" />
-                  <span className="font-semibold text-foreground text-sm">Affirmations</span>
-                </div>
-              </Link>
-              <Link href="/drills" onClick={() => setMenuOpen(false)}>
-                <div className="flex items-center gap-3 px-5 py-3 hover:bg-court/10 transition-colors cursor-pointer">
-                  <Target className="w-5 h-5 text-court" />
-                  <span className="font-semibold text-foreground text-sm">Practice Drills</span>
-                </div>
-              </Link>
+              )}
             </div>
-          )}
+
+            {/* Logo */}
+            <img src="/pickleball-vibes-logo.png" alt="Pickleball Vibes logo" className="h-64 w-64 md:h-80 md:w-80 object-contain drop-shadow-md" />
+
+            {/* Daily Vibes text */}
+            <div>
+              <h2 className="text-xl md:text-2xl font-display font-bold text-foreground leading-tight">
+                Your Daily <span className="text-gradient-court">Vibes</span>
+              </h2>
+              <p className="text-muted-foreground font-body text-xs md:text-sm">
+                Fuel your mindset and sharpen your game
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Hero Section */}
-        <section className="px-4 md:px-8 pt-6 pb-10">
+        <section className="px-4 md:px-8 pt-2 pb-10">
           <div className="max-w-6xl mx-auto">
             <div className="flex flex-col items-center">
-              {/* Logo with side badges */}
-              <div className="animate-fade-in-up mb-6 flex flex-col md:flex-row items-center justify-center gap-6">
-                <div className="inline-flex items-center gap-3 bg-ball/20 text-foreground px-6 py-3 rounded-2xl text-lg md:text-xl font-semibold border border-ball/30 shadow-soft">
-                  <Zap className="w-6 h-6 text-ball" />
-                  Daily motivation for players
-                </div>
-                <img src="/pickleball-vibes-logo.png" alt="Pickleball Vibes logo" className="h-96 w-96 md:h-[30rem] md:w-[30rem] object-contain drop-shadow-md" />
-                <div className="text-center md:text-left">
-                  <h2 className="text-2xl md:text-3xl font-display font-bold text-foreground mb-1">
-                    Your Daily <span className="text-gradient-court">Vibes</span>
-                  </h2>
-                  <p className="text-muted-foreground font-body text-sm md:text-base">
-                    Fuel your mindset and sharpen<br className="hidden md:inline" /> your game every single day
-                  </p>
-                </div>
-              </div>
-
               {/* Hero text */}
               <div className="text-center animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-foreground mb-5 leading-tight">

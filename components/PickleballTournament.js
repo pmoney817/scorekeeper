@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { Plus, Users, Trophy, Play, Edit3, Trash2, Shuffle, Target, Crown, MessageCircle, Send, Bot, Mic, ChevronUp, ChevronDown, ArrowUp, ArrowDown, Home } from 'lucide-react';
 
 const PickleballTournament = () => {
-  const [currentView, setCurrentView] = useState('setup'); // setup, ai-setup, tournament, match, results
+  const [currentView, setCurrentView] = useState('format-select'); // format-select, setup, ai-setup, tournament, match, results
   const [tournamentType, setTournamentType] = useState('roundrobin'); // roundrobin, bracket, poolplay, ladder
   const [tournamentPhase, setTournamentPhase] = useState(null); // null, 'pools', 'bracket', 'playing', 'session-results'
   const [ladderSession, setLadderSession] = useState(0);
@@ -903,7 +903,7 @@ Examples:
     setAiMessages([]);
     setExtractedData(null);
     setUserInput('');
-    setCurrentView('setup');
+    setCurrentView('format-select');
     localStorage.removeItem('pickleball-tournament');
   };
 
@@ -923,28 +923,37 @@ Examples:
         
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-            <Target className="text-green-600" />
-            Pickleball Tournament Manager
-          </h1>
-          
-          <div className="flex gap-2">
+          <div className="flex items-center gap-4">
             <Link href="/">
-              <span className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors cursor-pointer">
-                <Home size={16} />
-                Home
-              </span>
+              <img src="/pickleball-vibes-logo.png" alt="Pickleball Vibes" className="h-16 w-16 object-contain drop-shadow-md cursor-pointer hover:scale-105 transition-transform duration-300" />
             </Link>
+            <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
+              <Target className="text-green-600" />
+              Pickleball Tournament Manager
+            </h1>
+          </div>
+
+          <div className="flex gap-2">
+            {currentView === 'format-select' && null}
+
             {currentView === 'setup' && (
-              <button
-                onClick={() => setCurrentView('ai-setup')}
-                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-              >
-                <Bot size={16} />
-                AI Setup
-              </button>
+              <>
+                <button
+                  onClick={() => setCurrentView('format-select')}
+                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  Back
+                </button>
+                <button
+                  onClick={() => setCurrentView('ai-setup')}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                >
+                  <Bot size={16} />
+                  AI Setup
+                </button>
+              </>
             )}
-            
+
             {currentView === 'ai-setup' && (
               <button
                 onClick={() => setCurrentView('setup')}
@@ -980,6 +989,78 @@ Examples:
             )}
           </div>
         </div>
+
+        {/* Format Selection View */}
+        {currentView === 'format-select' && (
+          <div className="space-y-6">
+            <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Choose Your Game Format</h2>
+              <p className="text-gray-600">Select a format to get started</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <button
+                onClick={() => { setTournamentType('roundrobin'); setCurrentView('setup'); }}
+                className="text-left p-6 rounded-xl border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 hover:shadow-md group"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="p-3 rounded-xl bg-blue-50 group-hover:bg-blue-100 transition-colors">
+                    <Shuffle size={32} className="text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-800 mb-1">Round Robin</h3>
+                    <p className="text-sm text-gray-600 leading-relaxed">Every player/team plays against every other. Best for smaller groups wanting maximum play time.</p>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => { setTournamentType('bracket'); setCurrentView('setup'); }}
+                className="text-left p-6 rounded-xl border-2 border-gray-200 hover:border-yellow-400 hover:bg-yellow-50 transition-all duration-200 hover:shadow-md group"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="p-3 rounded-xl bg-yellow-50 group-hover:bg-yellow-100 transition-colors">
+                    <Trophy size={32} className="text-yellow-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-800 mb-1">Bracket Tournament</h3>
+                    <p className="text-sm text-gray-600 leading-relaxed">Single elimination bracket. Win or go home — perfect for competitive events.</p>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => { setTournamentType('poolplay'); setCurrentView('setup'); }}
+                className="text-left p-6 rounded-xl border-2 border-gray-200 hover:border-green-400 hover:bg-green-50 transition-all duration-200 hover:shadow-md group"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="p-3 rounded-xl bg-green-50 group-hover:bg-green-100 transition-colors">
+                    <Users size={32} className="text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-800 mb-1">Pool Play into Bracket</h3>
+                    <p className="text-sm text-gray-600 leading-relaxed">Group stage followed by elimination bracket. Guarantees multiple games before playoffs.</p>
+                  </div>
+                </div>
+              </button>
+
+              <button
+                onClick={() => { setTournamentType('ladder'); setCurrentView('setup'); }}
+                className="text-left p-6 rounded-xl border-2 border-gray-200 hover:border-purple-400 hover:bg-purple-50 transition-all duration-200 hover:shadow-md group"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="p-3 rounded-xl bg-purple-50 group-hover:bg-purple-100 transition-colors">
+                    <Target size={32} className="text-purple-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-800 mb-1">Ladder League</h3>
+                    <p className="text-sm text-gray-600 leading-relaxed">Players rotate partners on courts by skill level. Top players move up, bottom move down each session.</p>
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* AI Setup View */}
         {currentView === 'ai-setup' && (
