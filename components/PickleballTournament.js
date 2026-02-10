@@ -99,6 +99,18 @@ const PickleballTournament = () => {
     }
   }, [hydrated, currentView, tournamentType, tournamentPhase, participantType, participants, matches, currentMatch, tournamentSettings, score, ladderSession, courtAssignments, tournamentName]);
 
+  // Auto-save game when tournament completes (view transitions to results)
+  const [autoSaved, setAutoSaved] = useState(false);
+  useEffect(() => {
+    if (currentView === 'results' && matches.length > 0 && !autoSaved) {
+      saveGame();
+      setAutoSaved(true);
+    }
+    if (currentView !== 'results') {
+      setAutoSaved(false);
+    }
+  }, [currentView]);
+
   // AI Setup functionality
   const processAISetup = async (userMessage) => {
     setIsProcessing(true);
@@ -2801,18 +2813,16 @@ Examples:
               </div>
             </div>
 
+            {/* Auto-saved indicator */}
+            {autoSaved && (
+              <p className="text-center text-green-600 text-sm font-medium flex items-center justify-center gap-1">
+                <Save size={14} />
+                Game automatically saved
+              </p>
+            )}
+
             {/* Action Buttons */}
             <div className="flex justify-center gap-4 flex-wrap">
-              <button
-                onClick={() => {
-                  saveGame();
-                  alert('Game saved!');
-                }}
-                className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors"
-              >
-                <Save size={16} />
-                Save Game
-              </button>
               <button
                 onClick={() => setCurrentView('tournament')}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors"
@@ -2820,13 +2830,10 @@ Examples:
                 Back to Tournament
               </button>
               <button
-                onClick={() => {
-                  saveGame();
-                  resetTournament();
-                }}
+                onClick={() => resetTournament()}
                 className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors"
               >
-                Save & New Tournament
+                New Tournament
               </button>
             </div>
           </div>
