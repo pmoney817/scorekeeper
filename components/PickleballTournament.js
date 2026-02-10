@@ -106,9 +106,6 @@ const PickleballTournament = () => {
       saveGame();
       setAutoSaved(true);
     }
-    if (currentView !== 'results') {
-      setAutoSaved(false);
-    }
   }, [currentView]);
 
   // AI Setup functionality
@@ -1237,9 +1234,18 @@ Examples:
   };
 
   const saveGame = () => {
+    const gameName = tournamentName || 'Untitled Game';
+    const participantIds = participants.map(p => p.id).sort().join(',');
+
+    // Check if this tournament was already saved (same name + same participants)
+    const existingIndex = savedGames.findIndex(g =>
+      g.name === gameName && g.participantIds === participantIds
+    );
+
     const game = {
-      id: Date.now(),
-      name: tournamentName || 'Untitled Game',
+      id: existingIndex >= 0 ? savedGames[existingIndex].id : Date.now(),
+      name: gameName,
+      participantIds,
       date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
       type: tournamentType,
       participantType,
@@ -1247,7 +1253,16 @@ Examples:
       matches: matches.map(m => ({ ...m })),
       standings: getStandings(),
     };
-    const updated = [game, ...savedGames];
+
+    let updated;
+    if (existingIndex >= 0) {
+      // Update existing save
+      updated = [...savedGames];
+      updated[existingIndex] = game;
+    } else {
+      // New save — most recent first
+      updated = [game, ...savedGames];
+    }
     setSavedGames(updated);
     localStorage.setItem('pickleball-saved-games', JSON.stringify(updated));
     return game;
@@ -1264,6 +1279,7 @@ Examples:
     setExtractedData(null);
     setUserInput('');
     setTournamentName('');
+    setAutoSaved(false);
     setCurrentView('format-select');
     localStorage.removeItem('pickleball-tournament');
   };
