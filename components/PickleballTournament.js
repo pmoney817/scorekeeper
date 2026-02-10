@@ -42,7 +42,6 @@ const PickleballTournament = () => {
   const [savedGames, setSavedGames] = useState([]);
   const [viewingSavedGame, setViewingSavedGame] = useState(null);
   const [editingParticipant, setEditingParticipant] = useState(null);
-  const [inlineScores, setInlineScores] = useState({}); // { matchId: { score1: 0, score2: 0 } }
 
   const [hydrated, setHydrated] = useState(false);
 
@@ -996,8 +995,8 @@ Examples:
     const scoreDiff = Math.abs(team1Score - team2Score);
 
     if ((team1Score < pointsToWin && team2Score < pointsToWin) ||
-        (winByTwo && scoreDiff < 2 && (team1Score >= pointsToWin || team2Score >= pointsToWin))) {
-      alert('Match not complete. Need to reach winning score and win by required margin.');
+        (winByTwo && scoreDiff < 2 && (team1Score >= pointsToWin || team2Score >= pointsToWin)) ||
+        team1Score === team2Score) {
       return false;
     }
 
@@ -1161,21 +1160,11 @@ Examples:
     setMatches(updatedMatches);
     setParticipants(updatedParticipants);
 
-    // Double elimination: check completion
+    // Double elimination: stay on tournament view
     if (tournamentType === 'doubleelim') {
-      const grandFinal = updatedMatches.find(m => m.id === 'grand-final');
-      const resetMatch = updatedMatches.find(m => m.id === 'reset-match');
-      if (grandFinal?.completed) {
-        // Winners bracket champ won grand final → done
-        if (grandFinal.winner === grandFinal.team1 || (resetMatch?.completed)) {
-          setCurrentView('results');
-          setCurrentMatch(null);
-          return;
-        }
-      }
       setCurrentView('tournament');
       setCurrentMatch(null);
-      return;
+      return true;
     }
 
     // Pool play: check if pool phase is done → advance to bracket
@@ -1184,17 +1173,7 @@ Examples:
       if (poolMatches.every(m => m.completed)) {
         setCurrentMatch(null);
         setTimeout(() => advanceToBracket(), 100);
-        return;
-      }
-    }
-
-    // Pool play bracket phase: check if bracket is done
-    if (tournamentType === 'poolplay' && tournamentPhase === 'bracket') {
-      const bracketMatches = updatedMatches.filter(m => m.phase === 'bracket');
-      if (bracketMatches.every(m => m.completed)) {
-        setCurrentView('results');
-        setCurrentMatch(null);
-        return;
+        return true;
       }
     }
 
@@ -1206,14 +1185,12 @@ Examples:
       }
       setCurrentView('tournament');
       setCurrentMatch(null);
-      return;
+      return true;
     }
 
-    const allComplete = updatedMatches.every(m => m.completed);
+    // Stay on tournament view — user clicks "View Results" when ready
     if (!inlineMatch) {
-      setCurrentView(allComplete && tournamentType === 'roundrobin' ? 'results' : 'tournament');
-    } else if (allComplete && tournamentType === 'roundrobin') {
-      setCurrentView('results');
+      setCurrentView('tournament');
     }
     setCurrentMatch(null);
     return true;
@@ -1340,100 +1317,82 @@ Examples:
       : participant.name;
   };
 
-  const [editingMatchIds, setEditingMatchIds] = useState({});
+  // Auto-score: update match score and auto-complete/uncomplete based on rules
+  const handleScoreChange = (matchId, field, value) => {
+    const parsed = value === '' ? null : Math.max(0, parseInt(value) || 0);
+    const match = matches.find(m => m.id === matchId);
+    if (!match) return;
 
-  const editMatch = (match) => {
-    // Pre-fill inline scores with existing scores
-    setInlineScores(prev => ({ ...prev, [match.id]: { score1: match.score1 || 0, score2: match.score2 || 0 } }));
+    const s1 = field === 'score1' ? parsed : match.score1;
+    const s2 = field === 'score2' ? parsed : match.score2;
+    const { pointsToWin, winByTwo } = tournamentSettings;
 
-    // Reverse participant stats from the old result
-    if (match.winner) {
-      const winnerIds = Array.isArray(match.winner) ? match.winner.map(p => p.id) : [match.winner.id];
-      const loserTeam = match.winner === match.team1 || (match.winner.id && match.winner.id === match.team1?.id) ? match.team2 : match.team1;
-      const loserIds = Array.isArray(loserTeam) ? loserTeam.map(p => p.id) : [loserTeam?.id].filter(Boolean);
-      const winScore = Math.max(match.score1 || 0, match.score2 || 0);
-      const loseScore = Math.min(match.score1 || 0, match.score2 || 0);
+    // Only auto-complete when both scores have been entered
+    const bothEntered = s1 !== null && s2 !== null;
+    const scoreDiff = bothEntered ? Math.abs(s1 - s2) : 0;
+    const isComplete = bothEntered && s1 !== s2 &&
+      (s1 >= pointsToWin || s2 >= pointsToWin) &&
+      (!winByTwo || scoreDiff >= 2);
 
+    // If match was previously completed, reverse old stats
+    if (match.completed && match.winner) {
+      const oldWinnerIds = Array.isArray(match.winner) ? match.winner.map(p => p.id) : [match.winner.id];
+      const oldLoserTeam = (match.winner === match.team1 || match.winner?.id === match.team1?.id) ? match.team2 : match.team1;
+      const oldLoserIds = Array.isArray(oldLoserTeam) ? oldLoserTeam.map(p => p.id) : [oldLoserTeam?.id].filter(Boolean);
+      const oldWinScore = Math.max(match.score1 || 0, match.score2 || 0);
+      const oldLoseScore = Math.min(match.score1 || 0, match.score2 || 0);
       setParticipants(prev => prev.map(p => {
-        if (winnerIds.includes(p.id)) {
-          return { ...p, wins: Math.max(0, p.wins - 1), points: Math.max(0, p.points - winScore) };
-        }
-        if (loserIds.includes(p.id)) {
-          return { ...p, losses: Math.max(0, p.losses - 1), points: Math.max(0, p.points - loseScore) };
-        }
+        if (oldWinnerIds.includes(p.id)) return { ...p, wins: Math.max(0, p.wins - 1), points: Math.max(0, p.points - oldWinScore) };
+        if (oldLoserIds.includes(p.id)) return { ...p, losses: Math.max(0, p.losses - 1), points: Math.max(0, p.points - oldLoseScore) };
         return p;
       }));
     }
 
-    // Mark match as uncompleted
-    setMatches(prev => prev.map(m =>
-      m.id === match.id ? { ...m, completed: false, winner: null, score1: null, score2: null } : m
-    ));
-
-    // Track that this match is being edited
-    setEditingMatchIds(prev => ({ ...prev, [match.id]: true }));
+    if (isComplete) {
+      // Use completeMatch to handle all advancement logic
+      // First update the match scores so completeMatch can read them
+      setMatches(prev => prev.map(m => m.id === matchId ? { ...m, score1: s1, score2: s2, completed: false, winner: null } : m));
+      // Run completion on next tick so state is updated
+      setTimeout(() => completeMatch({ ...match, score1: s1, score2: s2 }, s1, s2), 0);
+    } else {
+      // Just update scores, mark uncompleted
+      setMatches(prev => prev.map(m => m.id === matchId ? { ...m, score1: s1, score2: s2, completed: false, winner: null } : m));
+    }
   };
 
-  const getInlineScore = (matchId) => inlineScores[matchId] || { score1: 0, score2: 0 };
-  const setInlineScore = (matchId, field, value) => {
-    setInlineScores(prev => ({ ...prev, [matchId]: { ...getInlineScore(matchId), [field]: Math.max(0, parseInt(value) || 0) } }));
-  };
-
-  // Render a score input next to a team name (teamNum: 'score1' or 'score2')
+  // Render a score input next to a team name — always editable
   const renderScoreInput = (match, teamNum, size = 'normal') => {
-    if (match.completed) return <span className={`font-bold ${size === 'small' ? 'text-sm' : 'text-lg'}`}>{match[teamNum]}</span>;
     if (!match.team1 || !match.team2) return null;
-    const ms = getInlineScore(match.id);
-    const handleKey = (e) => {
-      if (e.key === 'Enter') {
-        const result = completeMatch(match, ms.score1, ms.score2);
-        if (result !== false) setInlineScores(prev => { const next = { ...prev }; delete next[match.id]; return next; });
-      }
-    };
-    const inputClass = size === 'small'
-      ? 'w-12 text-center text-sm font-bold border border-gray-300 rounded-md py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500'
-      : 'w-14 text-center text-lg font-bold border border-gray-300 rounded-lg py-1 focus:outline-none focus:ring-2 focus:ring-blue-500';
+    const val = match[teamNum] ?? '';
+    const isSmall = size === 'small';
+    const inputClass = isSmall
+      ? 'w-12 text-center text-sm font-bold border rounded-md py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
+      : 'w-14 text-center text-lg font-bold border rounded-lg py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none';
+    const borderColor = match.completed ? 'border-green-400 bg-green-50' : 'border-gray-300';
     return (
-      <input type="number" min="0" value={ms[teamNum]} onChange={(e) => setInlineScore(match.id, teamNum, e.target.value)} onKeyDown={handleKey} className={inputClass} />
+      <input
+        type="number"
+        min="0"
+        value={val === null || val === '' ? '' : val}
+        onChange={(e) => handleScoreChange(match.id, teamNum, e.target.value)}
+        className={`${inputClass} ${borderColor}`}
+        placeholder="-"
+      />
     );
   };
 
-  // Render the action area (Submit / Edit / Complete / Waiting)
+  // Render match status indicator (no buttons needed)
   const renderMatchAction = (match, size = 'normal') => {
     if (match.completed) {
       return (
-        <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1">
-            <Crown className="text-yellow-500" size={size === 'small' ? 14 : 20} />
-            <span className={`font-medium text-green-600 ${size === 'small' ? 'text-xs' : 'text-sm'}`}>Done</span>
-          </div>
-          <button
-            onClick={() => editMatch(match)}
-            className={`text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors ${size === 'small' ? 'p-1' : 'p-1.5'}`}
-            title="Edit score"
-          >
-            <Edit3 size={size === 'small' ? 12 : 16} />
-          </button>
+        <div className="flex items-center gap-1">
+          <Crown className="text-yellow-500" size={size === 'small' ? 14 : 20} />
+          <span className={`font-medium text-green-600 ${size === 'small' ? 'text-xs' : 'text-sm'}`}>Done</span>
         </div>
       );
     }
     if (!match.team1 || !match.team2) return <span className="text-gray-500 text-sm">Waiting</span>;
-    const ms = getInlineScore(match.id);
-    const handleSubmit = () => {
-      const result = completeMatch(match, ms.score1, ms.score2);
-      if (result !== false) {
-        setInlineScores(prev => { const next = { ...prev }; delete next[match.id]; return next; });
-        setEditingMatchIds(prev => { const next = { ...prev }; delete next[match.id]; return next; });
-      }
-    };
-    return (
-      <button
-        onClick={handleSubmit}
-        className={`bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors ${size === 'small' ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm font-semibold'}`}
-      >
-        Submit
-      </button>
-    );
+    return null;
   };
 
   return (
@@ -1490,7 +1449,7 @@ Examples:
                 >
                   Tournament
                 </button>
-                {(matches.length > 0 && matches.every(m => m.completed)) || (tournamentType === 'ladder' && tournamentPhase === 'session-results') ? (
+                {(matches.length > 0 && matches.filter(m => !m.isReset || (m.team1 && m.team2)).every(m => m.completed)) || (tournamentType === 'ladder' && tournamentPhase === 'session-results') ? (
                   <button
                     onClick={() => setCurrentView('results')}
                     className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg transition-colors"
@@ -2746,9 +2705,12 @@ Examples:
               )}
             </div>
 
-            {/* View Final Rankings Button */}
-            {tournamentType === 'roundrobin' && matches.length > 0 && matches.every(m => m.completed) && (
-              <div className="text-center">
+            {/* View Final Rankings Button — shown for all formats when all matches are done */}
+            {matches.length > 0 &&
+             tournamentType !== 'ladder' &&
+             !(tournamentType === 'poolplay' && tournamentPhase === 'pools') &&
+             matches.filter(m => !m.isReset || (m.team1 && m.team2)).every(m => m.completed) && (
+              <div className="text-center mt-4">
                 <button
                   onClick={() => setCurrentView('results')}
                   className="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-lg text-lg font-semibold flex items-center gap-2 mx-auto transition-colors"
