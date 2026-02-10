@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Plus, Users, Trophy, Play, Edit3, Trash2, Shuffle, Target, Crown, MessageCircle, Send, Bot, Mic, ChevronUp, ChevronDown, ArrowUp, ArrowDown, Home, Save, History } from 'lucide-react';
+import { Plus, Users, Trophy, Play, Edit3, Trash2, Shuffle, Target, Crown, MessageCircle, Send, Bot, Mic, ChevronUp, ChevronDown, ArrowUp, ArrowDown, Home, Save, History, Eye, ArrowLeft, X as XIcon } from 'lucide-react';
 
 const PickleballTournament = () => {
   const [currentView, setCurrentView] = useState('format-select'); // format-select, setup, ai-setup, tournament, match, results
@@ -40,6 +40,9 @@ const PickleballTournament = () => {
 
   const [tournamentName, setTournamentName] = useState('');
   const [savedGames, setSavedGames] = useState([]);
+  const [viewingSavedGame, setViewingSavedGame] = useState(null);
+  const [editingParticipant, setEditingParticipant] = useState(null);
+  const [inlineScores, setInlineScores] = useState({}); // { matchId: { score1: 0, score2: 0 } }
 
   const [hydrated, setHydrated] = useState(false);
 
@@ -239,6 +242,20 @@ Examples:
 
   const removeParticipant = (id) => {
     setParticipants(participants.filter(p => p.id !== id));
+  };
+
+  const startEditingParticipant = (participant) => {
+    setEditingParticipant({ id: participant.id, name: participant.name, partner: participant.partner || '' });
+  };
+
+  const saveEditingParticipant = () => {
+    if (!editingParticipant || !editingParticipant.name.trim()) return;
+    setParticipants(participants.map(p =>
+      p.id === editingParticipant.id
+        ? { ...p, name: editingParticipant.name.trim(), partner: p.type === 'team' ? editingParticipant.partner.trim() : p.partner }
+        : p
+    ));
+    setEditingParticipant(null);
   };
 
   // Generate Round Robin matches
@@ -957,31 +974,36 @@ Examples:
     setScore(newScore);
   };
 
-  // Complete match
-  const completeMatch = () => {
-    if (!currentMatch) return;
+  // Complete match — can be called inline (with matchObj and scores) or from the match view
+  const completeMatch = (inlineMatch, inlineScore1, inlineScore2) => {
+    const matchToComplete = inlineMatch || currentMatch;
+    if (!matchToComplete) return;
 
     const { pointsToWin, winByTwo } = tournamentSettings;
-    
+
     // Check if match is actually complete
-    const team1Score = score.team1;
-    const team2Score = score.team2;
+    const team1Score = inlineMatch ? inlineScore1 : score.team1;
+    const team2Score = inlineMatch ? inlineScore2 : score.team2;
     const scoreDiff = Math.abs(team1Score - team2Score);
-    
-    if ((team1Score < pointsToWin && team2Score < pointsToWin) || 
+
+    if ((team1Score < pointsToWin && team2Score < pointsToWin) ||
         (winByTwo && scoreDiff < 2 && (team1Score >= pointsToWin || team2Score >= pointsToWin))) {
       alert('Match not complete. Need to reach winning score and win by required margin.');
-      return;
+      return false;
     }
 
-    const winnerTeam = team1Score > team2Score ? currentMatch.team1 : currentMatch.team2;
-    const loserTeam = team1Score > team2Score ? currentMatch.team2 : currentMatch.team1;
+    // Save currentMatch temporarily for the rest of the logic
+    const savedCurrentMatch = currentMatch;
+    const activeMatch = matchToComplete;
+
+    const winnerTeam = team1Score > team2Score ? activeMatch.team1 : activeMatch.team2;
+    const loserTeam = team1Score > team2Score ? activeMatch.team2 : activeMatch.team1;
     const winScore = Math.max(team1Score, team2Score);
     const loseScore = Math.min(team1Score, team2Score);
 
     // Update match
     let updatedMatches = matches.map(m => {
-      if (m.id === currentMatch.id) {
+      if (m.id === activeMatch.id) {
         return {
           ...m,
           score1: team1Score,
@@ -1009,14 +1031,14 @@ Examples:
 
     // For bracket tournaments (or bracket phase of pool play), advance winner
     const isBracketMatch = tournamentType === 'bracket' || (tournamentType === 'poolplay' && tournamentPhase === 'bracket');
-    if (isBracketMatch && currentMatch.bracketPosition !== undefined) {
+    if (isBracketMatch && activeMatch.bracketPosition !== undefined) {
       const bracketMatches = updatedMatches.filter(m => m.phase === 'bracket' || tournamentType === 'bracket');
       const maxRound = Math.max(...bracketMatches.map(m => m.round));
-      if (currentMatch.round < maxRound) {
+      if (activeMatch.round < maxRound) {
         const nextRoundMatch = updatedMatches.find(m =>
           (m.phase === 'bracket' || tournamentType === 'bracket') &&
-          m.round === currentMatch.round + 1 &&
-          Math.floor(currentMatch.bracketPosition / 2) === m.bracketPosition
+          m.round === activeMatch.round + 1 &&
+          Math.floor(activeMatch.bracketPosition / 2) === m.bracketPosition
         );
 
         if (nextRoundMatch) {
@@ -1035,20 +1057,20 @@ Examples:
     }
 
     // Double elimination: advance winner + send loser to losers bracket
-    if (tournamentType === 'doubleelim' && currentMatch.bracket) {
-      const loserTeam = winnerTeam === currentMatch.team1 ? currentMatch.team2 : currentMatch.team1;
+    if (tournamentType === 'doubleelim' && activeMatch.bracket) {
+      const loserTeam = winnerTeam === activeMatch.team1 ? activeMatch.team2 : activeMatch.team1;
       const winnersMatches = updatedMatches.filter(m => m.bracket === 'winners');
       const losersMatches = updatedMatches.filter(m => m.bracket === 'losers');
       const winnersMaxRound = winnersMatches.length > 0 ? Math.max(...winnersMatches.map(m => m.round)) : 0;
       const losersMaxRound = losersMatches.length > 0 ? Math.max(...losersMatches.map(m => m.round)) : 0;
 
-      if (currentMatch.bracket === 'winners') {
+      if (activeMatch.bracket === 'winners') {
         // Advance winner in winners bracket
-        if (currentMatch.round < winnersMaxRound) {
+        if (activeMatch.round < winnersMaxRound) {
           const nextWinners = updatedMatches.find(m =>
             m.bracket === 'winners' &&
-            m.round === currentMatch.round + 1 &&
-            Math.floor(currentMatch.bracketPosition / 2) === m.bracketPosition
+            m.round === activeMatch.round + 1 &&
+            Math.floor(activeMatch.bracketPosition / 2) === m.bracketPosition
           );
           if (nextWinners) {
             updatedMatches = updatedMatches.map(m => {
@@ -1070,7 +1092,7 @@ Examples:
 
         // Send loser to losers bracket
         // Winners round N losers drop into losers round (N-1)*2 + 1
-        const losersDropRound = (currentMatch.round - 1) * 2 + 1;
+        const losersDropRound = (activeMatch.round - 1) * 2 + 1;
         const losersDropMatch = updatedMatches.find(m =>
           m.bracket === 'losers' &&
           m.round === losersDropRound &&
@@ -1084,12 +1106,12 @@ Examples:
             return m;
           });
         }
-      } else if (currentMatch.bracket === 'losers') {
+      } else if (activeMatch.bracket === 'losers') {
         // Advance winner in losers bracket
-        if (currentMatch.round < losersMaxRound) {
+        if (activeMatch.round < losersMaxRound) {
           const nextLosers = updatedMatches.find(m =>
             m.bracket === 'losers' &&
-            m.round === currentMatch.round + 1 &&
+            m.round === activeMatch.round + 1 &&
             (!m.team1 || !m.team2)
           );
           if (nextLosers) {
@@ -1109,7 +1131,7 @@ Examples:
             return m;
           });
         }
-      } else if (currentMatch.bracket === 'grand-final') {
+      } else if (activeMatch.bracket === 'grand-final') {
         const grandFinal = updatedMatches.find(m => m.id === 'grand-final');
         if (grandFinal) {
           // If losers bracket champion won, activate reset match
@@ -1179,8 +1201,13 @@ Examples:
     }
 
     const allComplete = updatedMatches.every(m => m.completed);
-    setCurrentView(allComplete && tournamentType === 'roundrobin' ? 'results' : 'tournament');
+    if (!inlineMatch) {
+      setCurrentView(allComplete && tournamentType === 'roundrobin' ? 'results' : 'tournament');
+    } else if (allComplete && tournamentType === 'roundrobin') {
+      setCurrentView('results');
+    }
     setCurrentMatch(null);
+    return true;
   };
 
   // Get standings for round robin
@@ -1229,6 +1256,15 @@ Examples:
     localStorage.removeItem('pickleball-tournament');
   };
 
+  const deleteSavedGame = (gameId) => {
+    const updated = savedGames.filter(g => g.id !== gameId);
+    setSavedGames(updated);
+    localStorage.setItem('pickleball-saved-games', JSON.stringify(updated));
+    if (viewingSavedGame && viewingSavedGame.id === gameId) {
+      setViewingSavedGame(null);
+    }
+  };
+
   const getDisplayName = (participant) => {
     if (!participant) return 'TBD';
     if (Array.isArray(participant)) {
@@ -1237,6 +1273,56 @@ Examples:
     return participant.type === 'team' && participant.partner
       ? `${participant.name} & ${participant.partner}`
       : participant.name;
+  };
+
+  const getInlineScore = (matchId) => inlineScores[matchId] || { score1: 0, score2: 0 };
+  const setInlineScore = (matchId, field, value) => {
+    setInlineScores(prev => ({ ...prev, [matchId]: { ...getInlineScore(matchId), [field]: Math.max(0, parseInt(value) || 0) } }));
+  };
+
+  // Render a score input next to a team name (teamNum: 'score1' or 'score2')
+  const renderScoreInput = (match, teamNum, size = 'normal') => {
+    if (match.completed) return <span className={`font-bold ${size === 'small' ? 'text-sm' : 'text-lg'}`}>{match[teamNum]}</span>;
+    if (!match.team1 || !match.team2) return null;
+    const ms = getInlineScore(match.id);
+    const handleKey = (e) => {
+      if (e.key === 'Enter') {
+        const result = completeMatch(match, ms.score1, ms.score2);
+        if (result !== false) setInlineScores(prev => { const next = { ...prev }; delete next[match.id]; return next; });
+      }
+    };
+    const inputClass = size === 'small'
+      ? 'w-12 text-center text-sm font-bold border border-gray-300 rounded-md py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500'
+      : 'w-14 text-center text-lg font-bold border border-gray-300 rounded-lg py-1 focus:outline-none focus:ring-2 focus:ring-blue-500';
+    return (
+      <input type="number" min="0" value={ms[teamNum]} onChange={(e) => setInlineScore(match.id, teamNum, e.target.value)} onKeyDown={handleKey} className={inputClass} />
+    );
+  };
+
+  // Render the action area (Submit / Complete / Waiting)
+  const renderMatchAction = (match, size = 'normal') => {
+    if (match.completed) {
+      return (
+        <div className="flex items-center gap-1">
+          <Crown className="text-yellow-500" size={size === 'small' ? 14 : 20} />
+          <span className={`font-medium text-green-600 ${size === 'small' ? 'text-xs' : 'text-sm'}`}>Done</span>
+        </div>
+      );
+    }
+    if (!match.team1 || !match.team2) return <span className="text-gray-500 text-sm">Waiting</span>;
+    const ms = getInlineScore(match.id);
+    const handleSubmit = () => {
+      const result = completeMatch(match, ms.score1, ms.score2);
+      if (result !== false) setInlineScores(prev => { const next = { ...prev }; delete next[match.id]; return next; });
+    };
+    return (
+      <button
+        onClick={handleSubmit}
+        className={`bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors ${size === 'small' ? 'px-2 py-1 text-xs' : 'px-3 py-2 text-sm font-semibold'}`}
+      >
+        Submit
+      </button>
+    );
   };
 
   return (
@@ -1397,6 +1483,133 @@ Examples:
               </button>
             </div>
 
+            {/* Saved Game Detail Modal */}
+            {viewingSavedGame && (
+              <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setViewingSavedGame(null)}>
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                  {/* Modal Header */}
+                  <div className="sticky top-0 bg-white border-b border-gray-200 p-4 rounded-t-2xl flex items-center justify-between">
+                    <div>
+                      <h2 className="text-xl font-bold text-gray-800">{viewingSavedGame.name}</h2>
+                      <p className="text-sm text-gray-500">
+                        {viewingSavedGame.date} &middot; {
+                          viewingSavedGame.type === 'roundrobin' ? 'Round Robin' :
+                          viewingSavedGame.type === 'bracket' ? 'Bracket' :
+                          viewingSavedGame.type === 'poolplay' ? 'Pool Play' :
+                          viewingSavedGame.type === 'ladder' ? 'Ladder' :
+                          viewingSavedGame.type === 'doubleelim' ? 'Double Elim' :
+                          viewingSavedGame.type
+                        }
+                      </p>
+                    </div>
+                    <button onClick={() => setViewingSavedGame(null)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                      <XIcon size={20} className="text-gray-500" />
+                    </button>
+                  </div>
+
+                  <div className="p-4 space-y-4">
+                    {/* Champion Banner */}
+                    {viewingSavedGame.standings && viewingSavedGame.standings.length > 0 && (
+                      <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4 text-center">
+                        <Crown className="text-yellow-500 mx-auto mb-1" size={36} />
+                        <h3 className="text-2xl font-bold text-yellow-700 mb-1">Champion</h3>
+                        <p className="text-xl font-semibold">{getDisplayName(viewingSavedGame.standings[0])}</p>
+                        <p className="text-gray-600 text-sm mt-1">
+                          {viewingSavedGame.standings[0].wins}W - {viewingSavedGame.standings[0].losses}L ({viewingSavedGame.standings[0].winPercentage?.toFixed(1) || '0.0'}%)
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Final Rankings */}
+                    {viewingSavedGame.standings && viewingSavedGame.standings.length > 0 && (
+                      <div className="bg-white rounded-lg border border-gray-200">
+                        <h3 className="text-lg font-semibold p-3 border-b border-gray-200 flex items-center gap-2">
+                          <Trophy className="text-yellow-600" size={18} />
+                          Final Rankings
+                        </h3>
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-3 py-2 text-left text-sm">Rank</th>
+                                <th className="px-3 py-2 text-left text-sm">{viewingSavedGame.participantType === 'team' ? 'Team' : 'Player'}</th>
+                                <th className="px-3 py-2 text-center text-sm">W</th>
+                                <th className="px-3 py-2 text-center text-sm">L</th>
+                                <th className="px-3 py-2 text-center text-sm">Win %</th>
+                                <th className="px-3 py-2 text-center text-sm">Pts</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {viewingSavedGame.standings.map((p, index) => (
+                                <tr key={p.id || index} className={
+                                  index === 0 ? 'bg-yellow-50 font-semibold' :
+                                  index === 1 ? 'bg-gray-100' :
+                                  index === 2 ? 'bg-orange-50' :
+                                  'hover:bg-gray-50'
+                                }>
+                                  <td className="px-3 py-2 text-sm">
+                                    <div className="flex items-center gap-1">
+                                      {index === 0 && <Crown className="text-yellow-500" size={14} />}
+                                      #{index + 1}
+                                    </div>
+                                  </td>
+                                  <td className="px-3 py-2 text-sm">{getDisplayName(p)}</td>
+                                  <td className="px-3 py-2 text-center text-sm">{p.wins}</td>
+                                  <td className="px-3 py-2 text-center text-sm">{p.losses}</td>
+                                  <td className="px-3 py-2 text-center text-sm">{p.winPercentage?.toFixed(1) || '0.0'}%</td>
+                                  <td className="px-3 py-2 text-center text-sm">{p.points}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Match Scores */}
+                    {viewingSavedGame.matches && viewingSavedGame.matches.length > 0 && (
+                      <div className="bg-white rounded-lg border border-gray-200">
+                        <h3 className="text-lg font-semibold p-3 border-b border-gray-200 flex items-center gap-2">
+                          <Play className="text-blue-600" size={18} />
+                          Match Scores
+                        </h3>
+                        <div className="divide-y divide-gray-100">
+                          {viewingSavedGame.matches
+                            .filter(m => m.completed)
+                            .map((m, i) => (
+                              <div key={m.id || i} className="p-3 flex items-center justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`text-sm font-medium ${m.winner && ((m.winner.id || m.winner) === (m.team1?.id || m.team1)) ? 'text-green-700 font-bold' : 'text-gray-700'}`}>
+                                      {getDisplayName(m.team1)}
+                                    </span>
+                                    <span className="text-xs text-gray-400">vs</span>
+                                    <span className={`text-sm font-medium ${m.winner && ((m.winner.id || m.winner) === (m.team2?.id || m.team2)) ? 'text-green-700 font-bold' : 'text-gray-700'}`}>
+                                      {getDisplayName(m.team2)}
+                                    </span>
+                                  </div>
+                                  {m.bracket && (
+                                    <span className="text-xs text-gray-400 mt-0.5 block capitalize">{m.bracket.replace('-', ' ')}{m.round ? ` R${m.round}` : ''}</span>
+                                  )}
+                                </div>
+                                <div className="text-right">
+                                  <span className="text-sm font-bold text-gray-800">
+                                    {m.score1 ?? '?'} - {m.score2 ?? '?'}
+                                  </span>
+                                </div>
+                              </div>
+                          ))}
+                          {viewingSavedGame.matches.filter(m => m.completed).length === 0 && (
+                            <p className="p-3 text-sm text-gray-500 text-center">No completed matches</p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Game History */}
             {savedGames.length > 0 && (
               <div className="mt-8">
@@ -1409,17 +1622,33 @@ Examples:
                     const typeLabel = game.type === 'roundrobin' ? 'Round Robin' : game.type === 'bracket' ? 'Bracket' : game.type === 'poolplay' ? 'Pool Play' : game.type === 'ladder' ? 'Ladder' : game.type === 'doubleelim' ? 'Double Elim' : game.type;
                     const champion = game.standings && game.standings[0];
                     return (
-                      <div key={game.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
-                        <div>
+                      <div key={game.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
+                        <div className="flex-1 cursor-pointer" onClick={() => setViewingSavedGame(game)}>
                           <p className="font-semibold text-gray-800">{game.name}</p>
                           <p className="text-sm text-gray-500">{game.date} &middot; {typeLabel} &middot; {game.participants?.length || 0} {game.participantType === 'team' ? 'teams' : 'players'}</p>
                         </div>
-                        {champion && (
-                          <div className="flex items-center gap-1 text-sm text-yellow-700">
-                            <Crown size={14} className="text-yellow-500" />
-                            {champion.name}{champion.partner ? ` & ${champion.partner}` : ''}
-                          </div>
-                        )}
+                        <div className="flex items-center gap-3">
+                          {champion && (
+                            <div className="flex items-center gap-1 text-sm text-yellow-700">
+                              <Crown size={14} className="text-yellow-500" />
+                              {champion.name}{champion.partner ? ` & ${champion.partner}` : ''}
+                            </div>
+                          )}
+                          <button
+                            onClick={() => setViewingSavedGame(game)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="View scores"
+                          >
+                            <Eye size={16} />
+                          </button>
+                          <button
+                            onClick={() => { if (confirm('Delete this saved game?')) deleteSavedGame(game.id); }}
+                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete game"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
                     );
                   })}
@@ -1759,20 +1988,22 @@ Examples:
                   type="text"
                   value={newParticipant.name}
                   onChange={(e) => setNewParticipant({...newParticipant, name: e.target.value})}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { if (participantType !== 'team' || newParticipant.partner.trim()) addParticipant(); } }}
                   placeholder={participantType === 'team' ? 'Player 1 name' : 'Player name'}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-                
+
                 {participantType === 'team' && (
                   <input
                     type="text"
                     value={newParticipant.partner}
                     onChange={(e) => setNewParticipant({...newParticipant, partner: e.target.value})}
+                    onKeyDown={(e) => { if (e.key === 'Enter') addParticipant(); }}
                     placeholder="Player 2 name"
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 )}
-                
+
                 <button
                   onClick={addParticipant}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-colors"
@@ -1802,33 +2033,70 @@ Examples:
                         </div>
                       )}
                       <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <span className="font-medium">{getDisplayName(participant)}</span>
-                        <div className="flex items-center gap-1">
-                          {tournamentType === 'ladder' && (
-                            <>
+                        {editingParticipant && editingParticipant.id === participant.id ? (
+                          <div className="flex-1 flex gap-2 items-center">
+                            <input
+                              type="text"
+                              value={editingParticipant.name}
+                              onChange={(e) => setEditingParticipant({ ...editingParticipant, name: e.target.value })}
+                              onKeyDown={(e) => { if (e.key === 'Enter') saveEditingParticipant(); if (e.key === 'Escape') setEditingParticipant(null); }}
+                              className="flex-1 px-2 py-1 border border-blue-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                              autoFocus
+                            />
+                            {participant.type === 'team' && (
+                              <input
+                                type="text"
+                                value={editingParticipant.partner}
+                                onChange={(e) => setEditingParticipant({ ...editingParticipant, partner: e.target.value })}
+                                onKeyDown={(e) => { if (e.key === 'Enter') saveEditingParticipant(); if (e.key === 'Escape') setEditingParticipant(null); }}
+                                className="flex-1 px-2 py-1 border border-blue-400 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                              />
+                            )}
+                            <button onClick={saveEditingParticipant} className="text-green-600 hover:text-green-800 p-1" title="Save">
+                              <Save size={16} />
+                            </button>
+                            <button onClick={() => setEditingParticipant(null)} className="text-gray-500 hover:text-gray-700 p-1" title="Cancel">
+                              <XIcon size={16} />
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <span className="font-medium">{getDisplayName(participant)}</span>
+                            <div className="flex items-center gap-1">
+                              {tournamentType === 'ladder' && (
+                                <>
+                                  <button
+                                    onClick={() => moveParticipantUp(index)}
+                                    disabled={index === 0}
+                                    className="text-gray-600 hover:text-blue-600 disabled:text-gray-300 p-1"
+                                  >
+                                    <ChevronUp size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => moveParticipantDown(index)}
+                                    disabled={index === participants.length - 1}
+                                    className="text-gray-600 hover:text-blue-600 disabled:text-gray-300 p-1"
+                                  >
+                                    <ChevronDown size={16} />
+                                  </button>
+                                </>
+                              )}
                               <button
-                                onClick={() => moveParticipantUp(index)}
-                                disabled={index === 0}
-                                className="text-gray-600 hover:text-blue-600 disabled:text-gray-300 p-1"
+                                onClick={() => startEditingParticipant(participant)}
+                                className="text-blue-600 hover:text-blue-800 p-1"
+                                title="Edit name"
                               >
-                                <ChevronUp size={16} />
+                                <Edit3 size={16} />
                               </button>
                               <button
-                                onClick={() => moveParticipantDown(index)}
-                                disabled={index === participants.length - 1}
-                                className="text-gray-600 hover:text-blue-600 disabled:text-gray-300 p-1"
+                                onClick={() => removeParticipant(participant.id)}
+                                className="text-red-600 hover:text-red-800 p-1"
                               >
-                                <ChevronDown size={16} />
+                                <Trash2 size={16} />
                               </button>
-                            </>
-                          )}
-                          <button
-                            onClick={() => removeParticipant(participant.id)}
-                            className="text-red-600 hover:text-red-800 p-1"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </React.Fragment>
                   ))}
@@ -1950,26 +2218,16 @@ Examples:
                                     <div className="flex-1">
                                       <div className="flex justify-between items-center mb-1">
                                         <span className="font-medium text-sm">{getDisplayName(match.team1)}</span>
-                                        {match.completed && <span className="font-bold">{match.score1}</span>}
+                                        {renderScoreInput(match, 'score1', 'small')}
                                       </div>
                                       <div className="text-gray-400 text-xs mb-1">vs</div>
                                       <div className="flex justify-between items-center">
                                         <span className="font-medium text-sm">{getDisplayName(match.team2)}</span>
-                                        {match.completed && <span className="font-bold">{match.score2}</span>}
+                                        {renderScoreInput(match, 'score2', 'small')}
                                       </div>
                                     </div>
-                                    <div className="ml-3">
-                                      {match.completed ? (
-                                        <span className="text-sm font-medium text-green-600">Done</span>
-                                      ) : (
-                                        <button
-                                          onClick={() => startMatch(match)}
-                                          className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-1 text-sm transition-colors"
-                                        >
-                                          <Play size={14} />
-                                          Play
-                                        </button>
-                                      )}
+                                    <div className="ml-2">
+                                      {renderMatchAction(match, 'small')}
                                     </div>
                                   </div>
                                 </div>
@@ -2008,31 +2266,16 @@ Examples:
                                 <div className="flex-1">
                                   <div className="flex justify-between items-center mb-2">
                                     <span className="font-medium">{getDisplayName(match.team1)}</span>
-                                    {match.completed && <span className="font-bold text-lg">{match.score1}</span>}
+                                    {renderScoreInput(match, 'score1')}
                                   </div>
                                   <div className="text-gray-400 text-sm mb-2">vs</div>
                                   <div className="flex justify-between items-center">
                                     <span className="font-medium">{getDisplayName(match.team2)}</span>
-                                    {match.completed && <span className="font-bold text-lg">{match.score2}</span>}
+                                    {renderScoreInput(match, 'score2')}
                                   </div>
                                 </div>
-                                <div className="ml-4">
-                                  {match.completed ? (
-                                    <div className="flex items-center gap-2">
-                                      <Crown className="text-yellow-500" size={20} />
-                                      <span className="text-sm font-medium text-green-600">Complete</span>
-                                    </div>
-                                  ) : match.team1 && match.team2 ? (
-                                    <button
-                                      onClick={() => startMatch(match)}
-                                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-                                    >
-                                      <Play size={16} />
-                                      Play
-                                    </button>
-                                  ) : (
-                                    <span className="text-gray-500 text-sm">Waiting</span>
-                                  )}
+                                <div className="ml-3">
+                                  {renderMatchAction(match)}
                                 </div>
                               </div>
                             </div>
@@ -2150,26 +2393,16 @@ Examples:
                                 <div className="flex-1">
                                   <div className="flex justify-between items-center mb-2">
                                     <span className="font-medium">{getDisplayName(match.team1)}</span>
-                                    {match.completed && <span className="font-bold text-lg">{match.score1}</span>}
+                                    {renderScoreInput(match, 'score1')}
                                   </div>
                                   <div className="text-gray-400 text-sm mb-2">vs</div>
                                   <div className="flex justify-between items-center">
                                     <span className="font-medium">{getDisplayName(match.team2)}</span>
-                                    {match.completed && <span className="font-bold text-lg">{match.score2}</span>}
+                                    {renderScoreInput(match, 'score2')}
                                   </div>
                                 </div>
-                                <div className="ml-4">
-                                  {match.completed ? (
-                                    <span className="text-sm font-medium text-green-600">Done</span>
-                                  ) : (
-                                    <button
-                                      onClick={() => startMatch(match)}
-                                      className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-                                    >
-                                      <Play size={16} />
-                                      Play
-                                    </button>
-                                  )}
+                                <div className="ml-3">
+                                  {renderMatchAction(match)}
                                 </div>
                               </div>
                             </div>
@@ -2202,34 +2435,16 @@ Examples:
                             <div className="flex-1">
                               <div className="flex justify-between items-center mb-2">
                                 <span className="font-medium">{getDisplayName(match.team1)}</span>
-                                {match.completed && (
-                                  <span className="font-bold text-lg">{match.score1}</span>
-                                )}
+                                {renderScoreInput(match, 'score1')}
                               </div>
                               <div className="text-gray-400 text-sm mb-2">vs</div>
                               <div className="flex justify-between items-center">
                                 <span className="font-medium">{getDisplayName(match.team2)}</span>
-                                {match.completed && (
-                                  <span className="font-bold text-lg">{match.score2}</span>
-                                )}
+                                {renderScoreInput(match, 'score2')}
                               </div>
                             </div>
-                            
-                            <div className="ml-4">
-                              {match.completed ? (
-                                <div className="flex items-center gap-2">
-                                  <Crown className="text-yellow-500" size={20} />
-                                  <span className="text-sm font-medium text-green-600">Complete</span>
-                                </div>
-                              ) : (
-                                <button
-                                  onClick={() => startMatch(match)}
-                                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-                                >
-                                  <Play size={16} />
-                                  Play
-                                </button>
-                              )}
+                            <div className="ml-3">
+                              {renderMatchAction(match)}
                             </div>
                           </div>
                         </div>
@@ -2276,24 +2491,16 @@ Examples:
                                           <div className="flex-1">
                                             <div className="flex justify-between items-center mb-1">
                                               <span className="font-medium text-sm">{getDisplayName(match.team1)}</span>
-                                              {match.completed && <span className="font-bold">{match.score1}</span>}
+                                              {renderScoreInput(match, 'score1', 'small')}
                                             </div>
                                             <div className="text-gray-400 text-xs mb-1">vs</div>
                                             <div className="flex justify-between items-center">
                                               <span className="font-medium text-sm">{getDisplayName(match.team2)}</span>
-                                              {match.completed && <span className="font-bold">{match.score2}</span>}
+                                              {renderScoreInput(match, 'score2', 'small')}
                                             </div>
                                           </div>
-                                          <div className="ml-3">
-                                            {match.completed ? (
-                                              <Crown className="text-yellow-500" size={16} />
-                                            ) : match.team1 && match.team2 ? (
-                                              <button onClick={() => startMatch(match)} className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm flex items-center gap-1">
-                                                <Play size={14} /> Play
-                                              </button>
-                                            ) : (
-                                              <span className="text-gray-400 text-xs">Waiting</span>
-                                            )}
+                                          <div className="ml-2">
+                                            {renderMatchAction(match, 'small')}
                                           </div>
                                         </div>
                                       )}
@@ -2330,27 +2537,16 @@ Examples:
                                 <div className="flex-1">
                                   <div className="flex justify-between items-center mb-2">
                                     <span className="font-medium">{getDisplayName(grandFinal.team1)}{grandFinal.team1 ? ' (W)' : ''}</span>
-                                    {grandFinal.completed && <span className="font-bold text-lg">{grandFinal.score1}</span>}
+                                    {renderScoreInput(grandFinal, 'score1')}
                                   </div>
                                   <div className="text-gray-400 text-sm mb-2">vs</div>
                                   <div className="flex justify-between items-center">
                                     <span className="font-medium">{getDisplayName(grandFinal.team2)}{grandFinal.team2 ? ' (L)' : ''}</span>
-                                    {grandFinal.completed && <span className="font-bold text-lg">{grandFinal.score2}</span>}
+                                    {renderScoreInput(grandFinal, 'score2')}
                                   </div>
                                 </div>
-                                <div className="ml-4">
-                                  {grandFinal.completed ? (
-                                    <div className="flex items-center gap-2">
-                                      <Crown className="text-yellow-500" size={20} />
-                                      <span className="text-sm font-medium text-green-600">Complete</span>
-                                    </div>
-                                  ) : grandFinal.team1 && grandFinal.team2 ? (
-                                    <button onClick={() => startMatch(grandFinal)} className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
-                                      <Play size={16} /> Play
-                                    </button>
-                                  ) : (
-                                    <span className="text-gray-500 text-sm">Waiting for bracket winners</span>
-                                  )}
+                                <div className="ml-3">
+                                  {renderMatchAction(grandFinal)}
                                 </div>
                               </div>
                             </div>
@@ -2369,25 +2565,16 @@ Examples:
                                 <div className="flex-1">
                                   <div className="flex justify-between items-center mb-2">
                                     <span className="font-medium">{getDisplayName(resetMatch.team1)}</span>
-                                    {resetMatch.completed && <span className="font-bold text-lg">{resetMatch.score1}</span>}
+                                    {renderScoreInput(resetMatch, 'score1')}
                                   </div>
                                   <div className="text-gray-400 text-sm mb-2">vs</div>
                                   <div className="flex justify-between items-center">
                                     <span className="font-medium">{getDisplayName(resetMatch.team2)}</span>
-                                    {resetMatch.completed && <span className="font-bold text-lg">{resetMatch.score2}</span>}
+                                    {renderScoreInput(resetMatch, 'score2')}
                                   </div>
                                 </div>
-                                <div className="ml-4">
-                                  {resetMatch.completed ? (
-                                    <div className="flex items-center gap-2">
-                                      <Crown className="text-yellow-500" size={20} />
-                                      <span className="text-sm font-medium text-green-600">Champion!</span>
-                                    </div>
-                                  ) : (
-                                    <button onClick={() => startMatch(resetMatch)} className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2">
-                                      <Play size={16} /> Play
-                                    </button>
-                                  )}
+                                <div className="ml-3">
+                                  {renderMatchAction(resetMatch)}
                                 </div>
                               </div>
                             </div>
@@ -2423,36 +2610,16 @@ Examples:
                             <div className="flex-1">
                               <div className="flex justify-between items-center mb-2">
                                 <span className="font-medium">{getDisplayName(match.team1)}</span>
-                                {match.completed && (
-                                  <span className="font-bold text-lg">{match.score1}</span>
-                                )}
+                                {renderScoreInput(match, 'score1')}
                               </div>
                               <div className="text-gray-400 text-sm mb-2">vs</div>
                               <div className="flex justify-between items-center">
                                 <span className="font-medium">{getDisplayName(match.team2)}</span>
-                                {match.completed && (
-                                  <span className="font-bold text-lg">{match.score2}</span>
-                                )}
+                                {renderScoreInput(match, 'score2')}
                               </div>
                             </div>
-
-                            <div className="ml-4">
-                              {match.completed ? (
-                                <div className="flex items-center gap-2">
-                                  <Crown className="text-yellow-500" size={20} />
-                                  <span className="text-sm font-medium text-green-600">Complete</span>
-                                </div>
-                              ) : match.team1 && match.team2 ? (
-                                <button
-                                  onClick={() => startMatch(match)}
-                                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-                                >
-                                  <Play size={16} />
-                                  Play
-                                </button>
-                              ) : (
-                                <span className="text-gray-500 text-sm">Waiting for previous rounds</span>
-                              )}
+                            <div className="ml-3">
+                              {renderMatchAction(match)}
                             </div>
                           </div>
                         </div>
