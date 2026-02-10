@@ -1275,6 +1275,40 @@ Examples:
       : participant.name;
   };
 
+  const [editingMatchIds, setEditingMatchIds] = useState({});
+
+  const editMatch = (match) => {
+    // Pre-fill inline scores with existing scores
+    setInlineScores(prev => ({ ...prev, [match.id]: { score1: match.score1 || 0, score2: match.score2 || 0 } }));
+
+    // Reverse participant stats from the old result
+    if (match.winner) {
+      const winnerIds = Array.isArray(match.winner) ? match.winner.map(p => p.id) : [match.winner.id];
+      const loserTeam = match.winner === match.team1 || (match.winner.id && match.winner.id === match.team1?.id) ? match.team2 : match.team1;
+      const loserIds = Array.isArray(loserTeam) ? loserTeam.map(p => p.id) : [loserTeam?.id].filter(Boolean);
+      const winScore = Math.max(match.score1 || 0, match.score2 || 0);
+      const loseScore = Math.min(match.score1 || 0, match.score2 || 0);
+
+      setParticipants(prev => prev.map(p => {
+        if (winnerIds.includes(p.id)) {
+          return { ...p, wins: Math.max(0, p.wins - 1), points: Math.max(0, p.points - winScore) };
+        }
+        if (loserIds.includes(p.id)) {
+          return { ...p, losses: Math.max(0, p.losses - 1), points: Math.max(0, p.points - loseScore) };
+        }
+        return p;
+      }));
+    }
+
+    // Mark match as uncompleted
+    setMatches(prev => prev.map(m =>
+      m.id === match.id ? { ...m, completed: false, winner: null, score1: null, score2: null } : m
+    ));
+
+    // Track that this match is being edited
+    setEditingMatchIds(prev => ({ ...prev, [match.id]: true }));
+  };
+
   const getInlineScore = (matchId) => inlineScores[matchId] || { score1: 0, score2: 0 };
   const setInlineScore = (matchId, field, value) => {
     setInlineScores(prev => ({ ...prev, [matchId]: { ...getInlineScore(matchId), [field]: Math.max(0, parseInt(value) || 0) } }));
@@ -1299,13 +1333,22 @@ Examples:
     );
   };
 
-  // Render the action area (Submit / Complete / Waiting)
+  // Render the action area (Submit / Edit / Complete / Waiting)
   const renderMatchAction = (match, size = 'normal') => {
     if (match.completed) {
       return (
-        <div className="flex items-center gap-1">
-          <Crown className="text-yellow-500" size={size === 'small' ? 14 : 20} />
-          <span className={`font-medium text-green-600 ${size === 'small' ? 'text-xs' : 'text-sm'}`}>Done</span>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <Crown className="text-yellow-500" size={size === 'small' ? 14 : 20} />
+            <span className={`font-medium text-green-600 ${size === 'small' ? 'text-xs' : 'text-sm'}`}>Done</span>
+          </div>
+          <button
+            onClick={() => editMatch(match)}
+            className={`text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors ${size === 'small' ? 'p-1' : 'p-1.5'}`}
+            title="Edit score"
+          >
+            <Edit3 size={size === 'small' ? 12 : 16} />
+          </button>
         </div>
       );
     }
@@ -1313,7 +1356,10 @@ Examples:
     const ms = getInlineScore(match.id);
     const handleSubmit = () => {
       const result = completeMatch(match, ms.score1, ms.score2);
-      if (result !== false) setInlineScores(prev => { const next = { ...prev }; delete next[match.id]; return next; });
+      if (result !== false) {
+        setInlineScores(prev => { const next = { ...prev }; delete next[match.id]; return next; });
+        setEditingMatchIds(prev => { const next = { ...prev }; delete next[match.id]; return next; });
+      }
     };
     return (
       <button
