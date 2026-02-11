@@ -42,6 +42,7 @@ const PickleballTournament = () => {
   const [savedGames, setSavedGames] = useState([]);
   const [viewingSavedGame, setViewingSavedGame] = useState(null);
   const [editingParticipant, setEditingParticipant] = useState(null);
+  const [playerRoster, setPlayerRoster] = useState([]);
 
   const [hydrated, setHydrated] = useState(false);
 
@@ -68,6 +69,10 @@ const PickleballTournament = () => {
       const games = localStorage.getItem('pickleball-saved-games');
       if (games) {
         setSavedGames(JSON.parse(games));
+      }
+      const roster = localStorage.getItem('pickleball-player-roster');
+      if (roster) {
+        setPlayerRoster(JSON.parse(roster));
       }
     } catch (e) {
       console.error('Failed to restore tournament state:', e);
@@ -230,21 +235,68 @@ Examples:
     setAiMessages([]);
   };
 
+  // Save player to roster (deduplicates by name + partner)
+  const saveToRoster = (name, partner, type) => {
+    setPlayerRoster(prev => {
+      const exists = prev.some(p =>
+        p.name.toLowerCase() === name.toLowerCase() &&
+        (p.partner || '').toLowerCase() === (partner || '').toLowerCase() &&
+        p.type === type
+      );
+      if (exists) return prev;
+      const updated = [...prev, { id: crypto.randomUUID(), name, partner: partner || null, type }];
+      localStorage.setItem('pickleball-player-roster', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  // Add player from roster to current game
+  const addFromRoster = (rosterPlayer) => {
+    const alreadyIn = participants.some(p =>
+      p.name.toLowerCase() === rosterPlayer.name.toLowerCase() &&
+      (p.partner || '').toLowerCase() === (rosterPlayer.partner || '').toLowerCase()
+    );
+    if (alreadyIn) return;
+    const participant = {
+      id: crypto.randomUUID(),
+      type: rosterPlayer.type,
+      name: rosterPlayer.name,
+      partner: rosterPlayer.partner,
+      wins: 0,
+      losses: 0,
+      points: 0
+    };
+    setParticipants(prev => [...prev, participant]);
+  };
+
+  // Remove player from roster
+  const removeFromRoster = (rosterId) => {
+    setPlayerRoster(prev => {
+      const updated = prev.filter(p => p.id !== rosterId);
+      localStorage.setItem('pickleball-player-roster', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   // Add participant
   const addParticipant = () => {
     if (!newParticipant.name.trim()) return;
-    
+
+    const name = newParticipant.name.trim();
+    const partner = participantType === 'team' ? newParticipant.partner.trim() : null;
+
     const participant = {
       id: crypto.randomUUID(),
       type: participantType,
-      name: newParticipant.name.trim(),
-      partner: participantType === 'team' ? newParticipant.partner.trim() : null,
+      name,
+      partner,
       wins: 0,
       losses: 0,
       points: 0
     };
 
     setParticipants([...participants, participant]);
+    saveToRoster(name, partner, participantType);
     setNewParticipant({ name: '', partner: '' });
   };
 
@@ -1285,7 +1337,7 @@ Examples:
   const resetTournament = () => {
     setMatches([]);
     setCurrentMatch(null);
-    setParticipants(participants.map(p => ({ ...p, wins: 0, losses: 0, points: 0 })));
+    setParticipants([]);
     setTournamentPhase(null);
     setLadderSession(0);
     setCourtAssignments({});
@@ -2099,13 +2151,51 @@ Examples:
                   Add
                 </button>
               </div>
+
+              {/* Player Roster — pick from previously used players */}
+              {playerRoster.filter(r => r.type === participantType).length > 0 && (
+                <div className="mt-4">
+                  <h3 className="text-sm font-semibold text-gray-500 mb-2">Player Roster — tap to add</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {playerRoster.filter(r => r.type === participantType).map(rp => {
+                      const alreadyIn = participants.some(p =>
+                        p.name.toLowerCase() === rp.name.toLowerCase() &&
+                        (p.partner || '').toLowerCase() === (rp.partner || '').toLowerCase()
+                      );
+                      return (
+                        <div key={rp.id} className="flex items-center gap-1">
+                          <button
+                            onClick={() => !alreadyIn && addFromRoster(rp)}
+                            disabled={alreadyIn}
+                            className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                              alreadyIn
+                                ? 'bg-green-100 text-green-700 cursor-default'
+                                : 'bg-blue-50 text-blue-700 hover:bg-blue-100 cursor-pointer'
+                            }`}
+                          >
+                            {alreadyIn ? '✓ ' : '+ '}
+                            {rp.name}{rp.partner ? ` & ${rp.partner}` : ''}
+                          </button>
+                          <button
+                            onClick={() => removeFromRoster(rp.id)}
+                            className="text-gray-400 hover:text-red-500 p-0.5 transition-colors"
+                            title="Remove from roster"
+                          >
+                            <XIcon size={14} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Participants List */}
+            {/* Current Game Players */}
             {participants.length > 0 && (
               <div className="bg-white rounded-lg border border-gray-200">
                 <h2 className="text-xl font-semibold p-4 border-b border-gray-200">
-                  {participantType === 'team' ? 'Teams' : 'Players'} ({participants.length})
+                  Current Game — {participantType === 'team' ? 'Teams' : 'Players'} ({participants.length})
                 </h2>
                 
                 <div className="p-4 space-y-2">
