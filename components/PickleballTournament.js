@@ -1323,9 +1323,26 @@ Examples:
     const match = matches.find(m => m.id === matchId);
     if (!match) return;
 
-    const s1 = field === 'score1' ? parsed : match.score1;
-    const s2 = field === 'score2' ? parsed : match.score2;
+    let s1 = field === 'score1' ? parsed : match.score1;
+    let s2 = field === 'score2' ? parsed : match.score2;
     const { pointsToWin, winByTwo } = tournamentSettings;
+
+    // Cap scores to valid game results when both are entered
+    if (s1 !== null && s2 !== null) {
+      if (winByTwo) {
+        // Higher score can only exceed pointsToWin in deuce situations (other >= pointsToWin - 1)
+        if (s1 >= s2) {
+          s1 = s2 >= pointsToWin - 1 ? Math.min(s1, s2 + 2) : Math.min(s1, pointsToWin);
+        }
+        if (s2 >= s1) {
+          s2 = s1 >= pointsToWin - 1 ? Math.min(s2, s1 + 2) : Math.min(s2, pointsToWin);
+        }
+      } else {
+        // Without win-by-2, neither score can exceed pointsToWin
+        s1 = Math.min(s1, pointsToWin);
+        s2 = Math.min(s2, pointsToWin);
+      }
+    }
 
     // Only auto-complete when both scores have been entered
     const bothEntered = s1 !== null && s2 !== null;
