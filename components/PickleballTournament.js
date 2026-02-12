@@ -1379,29 +1379,32 @@ Examples:
     let s2 = field === 'score2' ? parsed : match.score2;
     const { pointsToWin, winByTwo } = tournamentSettings;
 
-    // Cap scores to valid game results when both are entered
+    // Cap only the field being typed in (never change the other field mid-typing)
     if (s1 !== null && s2 !== null) {
+      const otherScore = field === 'score1' ? s2 : s1;
       if (winByTwo) {
-        // Higher score can only exceed pointsToWin in deuce situations (other >= pointsToWin - 1)
-        if (s1 >= s2) {
-          s1 = s2 >= pointsToWin - 1 ? Math.min(s1, s2 + 2) : Math.min(s1, pointsToWin);
-        }
-        if (s2 >= s1) {
-          s2 = s1 >= pointsToWin - 1 ? Math.min(s2, s1 + 2) : Math.min(s2, pointsToWin);
-        }
+        const maxScore = otherScore >= pointsToWin - 1 ? otherScore + 2 : pointsToWin;
+        if (field === 'score1') s1 = Math.min(s1, maxScore);
+        else s2 = Math.min(s2, maxScore);
       } else {
-        // Without win-by-2, neither score can exceed pointsToWin
-        s1 = Math.min(s1, pointsToWin);
-        s2 = Math.min(s2, pointsToWin);
+        if (field === 'score1') s1 = Math.min(s1, pointsToWin);
+        else s2 = Math.min(s2, pointsToWin);
       }
     }
 
-    // Only auto-complete when both scores have been entered
+    // Only auto-complete when both scores form a valid finished game
     const bothEntered = s1 !== null && s2 !== null;
     const scoreDiff = bothEntered ? Math.abs(s1 - s2) : 0;
+    const highScore = bothEntered ? Math.max(s1, s2) : 0;
+    const lowScore = bothEntered ? Math.min(s1, s2) : 0;
+    // Valid game: winner has exactly pointsToWin, or exactly loser+2 in deuce
+    const validGame = bothEntered && (winByTwo
+      ? (lowScore < pointsToWin - 1 ? highScore === pointsToWin : highScore === lowScore + 2)
+      : highScore === pointsToWin);
     const isComplete = bothEntered && s1 !== s2 &&
       (s1 >= pointsToWin || s2 >= pointsToWin) &&
-      (!winByTwo || scoreDiff >= 2);
+      (!winByTwo || scoreDiff >= 2) &&
+      validGame;
 
     // If match was previously completed, reverse old stats
     if (match.completed && match.winner) {
