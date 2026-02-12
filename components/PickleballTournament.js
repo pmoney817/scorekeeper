@@ -1579,6 +1579,7 @@ Examples:
                 </div>
               </button>
 
+              {/* Pool Play — hidden for now
               <button
                 onClick={() => { setTournamentType('poolplay'); setCurrentView('setup'); }}
                 className="text-left p-6 rounded-xl border-2 border-gray-200 hover:border-green-400 hover:bg-green-50 transition-all duration-200 hover:shadow-md group"
@@ -1593,7 +1594,9 @@ Examples:
                   </div>
                 </div>
               </button>
+              */}
 
+              {/* Ladder League — hidden for now
               <button
                 onClick={() => { setTournamentType('ladder'); setCurrentView('setup'); }}
                 className="text-left p-6 rounded-xl border-2 border-gray-200 hover:border-purple-400 hover:bg-purple-50 transition-all duration-200 hover:shadow-md group"
@@ -1608,6 +1611,7 @@ Examples:
                   </div>
                 </div>
               </button>
+              */}
 
               <button
                 onClick={() => { setTournamentType('doubleelim'); setCurrentView('setup'); }}
@@ -1986,8 +1990,8 @@ Examples:
                   >
                     <option value="roundrobin">Round Robin</option>
                     <option value="bracket">Bracket Tournament</option>
-                    <option value="poolplay">Pool Play into Bracket</option>
-                    <option value="ladder">Ladder League</option>
+                    {/* <option value="poolplay">Pool Play into Bracket</option> */}
+                    {/* <option value="ladder">Ladder League</option> */}
                     <option value="doubleelim">Double Elimination</option>
                   </select>
                 </div>
