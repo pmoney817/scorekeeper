@@ -27,6 +27,7 @@ const PickleballTournament = () => {
   const [userInput, setUserInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [extractedData, setExtractedData] = useState(null);
+  const [isListening, setIsListening] = useState(false);
 
   const [newParticipant, setNewParticipant] = useState({
     name: '',
@@ -198,9 +199,33 @@ Examples:
 
   const handleAISubmit = () => {
     if (!userInput.trim()) return;
-    
+
     processAISetup(userInput.trim());
     setUserInput('');
+  };
+
+  const toggleSpeechToText = () => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert('Speech recognition is not supported in this browser. Try Chrome or Safari.');
+      return;
+    }
+    if (isListening) {
+      setIsListening(false);
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'en-US';
+    recognition.interimResults = false;
+    recognition.continuous = false;
+    recognition.onstart = () => setIsListening(true);
+    recognition.onresult = (event) => {
+      const transcript = event.results[0][0].transcript;
+      setUserInput(prev => prev ? prev + ' ' + transcript : transcript);
+    };
+    recognition.onerror = () => setIsListening(false);
+    recognition.onend = () => setIsListening(false);
+    recognition.start();
   };
 
   const applyAISettings = () => {
@@ -1875,6 +1900,18 @@ Examples:
                     disabled={isProcessing}
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
                   />
+                  <button
+                    onClick={toggleSpeechToText}
+                    disabled={isProcessing}
+                    className={`px-3 py-2 rounded-lg flex items-center transition-colors ${
+                      isListening
+                        ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse'
+                        : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                    }`}
+                    title={isListening ? 'Stop listening' : 'Speak'}
+                  >
+                    <Mic size={16} />
+                  </button>
                   <button
                     onClick={handleAISubmit}
                     disabled={isProcessing || !userInput.trim()}
