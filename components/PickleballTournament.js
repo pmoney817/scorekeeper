@@ -1515,12 +1515,6 @@ Examples:
             
             {currentView !== 'setup' && currentView !== 'ai-setup' && (
               <div className="flex gap-2">
-                <button
-                  onClick={() => setCurrentView('tournament')}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
-                >
-                  Tournament
-                </button>
                 {(matches.length > 0 && matches.filter(m => !m.isReset || (m.team1 && m.team2)).every(m => m.completed)) || (tournamentType === 'ladder' && tournamentPhase === 'session-results') ? (
                   <button
                     onClick={() => setCurrentView('results')}
