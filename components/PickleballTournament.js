@@ -1693,48 +1693,9 @@ Examples:
     <div className="max-w-6xl mx-auto p-6 bg-gray-50 min-h-screen">
       <div className="bg-white rounded-lg shadow-lg p-6">
 
-        {/* Live Sync Banner */}
-        {isViewer && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex items-center justify-center gap-2">
-            <Wifi className="text-blue-500 animate-pulse" size={18} />
-            <span className="text-blue-700 font-medium text-sm">Live Game — changes sync automatically</span>
-          </div>
-        )}
+        {/* Live Sync Banner — hidden for now, re-enable later */}
 
-        {/* QR Code Modal */}
-        {showQRCode && shareCode && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowQRCode(false)}>
-            <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full mx-4" onClick={e => e.stopPropagation()}>
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-gray-800">Share Game</h3>
-                <button onClick={() => setShowQRCode(false)} className="text-gray-400 hover:text-gray-600">
-                  <XIcon size={24} />
-                </button>
-              </div>
-              <div className="flex justify-center mb-6">
-                <QRCodeSVG value={getShareUrl()} size={200} level="M" />
-              </div>
-              <div className="text-center space-y-3">
-                <p className="text-sm text-gray-500">Scan to view live scores</p>
-                <div className="bg-gray-100 rounded-lg p-3">
-                  <p className="text-xs text-gray-500 mb-1">Share Code</p>
-                  <p className="text-2xl font-mono font-bold tracking-widest text-gray-800">{shareCode}</p>
-                </div>
-                <div className="bg-gray-50 rounded-lg p-2">
-                  <p className="text-xs text-gray-400 break-all">{getShareUrl()}</p>
-                </div>
-                <button
-                  onClick={() => {
-                    navigator.clipboard?.writeText(getShareUrl());
-                  }}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg text-sm font-medium transition-colors"
-                >
-                  Copy Link
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* QR Code Modal — hidden for now, re-enable later */}
 
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
@@ -1780,6 +1741,7 @@ Examples:
 
             {currentView !== 'setup' && currentView !== 'ai-setup' && (
               <div className="flex gap-2">
+                {/* Share Game button — hidden for now, re-enable later
                 {currentView === 'tournament' && (
                   <button
                     onClick={shareGame}
@@ -1789,6 +1751,7 @@ Examples:
                     {shareCode ? 'Show QR' : 'Share Game'}
                   </button>
                 )}
+                */}
                 {(matches.length > 0 && matches.filter(m => !m.isReset || (m.team1 && m.team2)).every(m => m.completed)) || (tournamentType === 'ladder' && tournamentPhase === 'session-results') ? (
                   <button
                     onClick={() => setCurrentView('results')}
