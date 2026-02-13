@@ -90,8 +90,6 @@ export default function DrillCard() {
     const today = getTodayStr();
     setCompletions(prev => {
       const dates = prev[drillId] || [];
-      // Don't add duplicate for same day
-      if (dates.includes(today)) return prev;
       const updated = { ...prev, [drillId]: [today, ...dates] };
       saveCompletions(updated);
       return updated;
@@ -103,8 +101,6 @@ export default function DrillCard() {
   const getDrillCompletions = (drillId) => {
     return completions[drillId] || [];
   };
-
-  const isDoneToday = drill ? (completions[drill.id] || []).includes(getTodayStr()) : false;
 
   const handleNewDrill = () => {
     setIsAnimating(true);
@@ -424,15 +420,10 @@ export default function DrillCard() {
             <div className="flex justify-center mt-3">
               <button
                 onClick={() => markDone(drill.id)}
-                disabled={isDoneToday}
-                className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 ${
-                  isDoneToday
-                    ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                    : 'bg-emerald-500 text-white hover:bg-emerald-600 hover:scale-105 shadow-soft'
-                }`}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-300 bg-emerald-500 text-white hover:bg-emerald-600 hover:scale-105 shadow-soft active:scale-95"
               >
                 <CheckCircle className={`w-4 h-4 ${justCompleted ? 'animate-bounce' : ''}`} />
-                {isDoneToday ? 'Done Today' : 'Mark Done'}
+                Mark Done{getDrillCompletions(drill.id).length > 0 ? ` (${getDrillCompletions(drill.id).length})` : ''}
               </button>
             </div>
           </div>
