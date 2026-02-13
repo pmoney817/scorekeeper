@@ -520,10 +520,8 @@ Examples:
     // First round
     const firstRoundMatchCount = bracketSize / 2;
     for (let i = 0; i < firstRoundMatchCount; i++) {
-      const p1Index = i * 2;
-      const p2Index = i * 2 + 1;
-      const team1 = p1Index < shuffledParticipants.length ? shuffledParticipants[p1Index] : null;
-      const team2 = p2Index < shuffledParticipants.length ? shuffledParticipants[p2Index] : null;
+      const team1 = i < shuffledParticipants.length ? shuffledParticipants[i] : null;
+      const team2 = (bracketSize - 1 - i) < shuffledParticipants.length ? shuffledParticipants[bracketSize - 1 - i] : null;
 
       if (team1 && team2) {
         bracketMatches.push({
@@ -613,8 +611,8 @@ Examples:
     // Winners R1
     const firstRoundCount = bracketSize / 2;
     for (let i = 0; i < firstRoundCount; i++) {
-      const p1 = i * 2 < shuffled.length ? shuffled[i * 2] : null;
-      const p2 = i * 2 + 1 < shuffled.length ? shuffled[i * 2 + 1] : null;
+      const p1 = i < shuffled.length ? shuffled[i] : null;
+      const p2 = (bracketSize - 1 - i) < shuffled.length ? shuffled[bracketSize - 1 - i] : null;
 
       if (p1 && p2) {
         allMatches.push({
