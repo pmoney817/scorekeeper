@@ -1,10 +1,20 @@
 import { useState, useRef, useEffect } from 'react';
-import { Trophy, ArrowRight, Sparkles, Target, Menu, X, LogIn } from 'lucide-react';
+import { Trophy, ArrowRight, Sparkles, Target, Menu, X, LogIn, LogOut } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/router';
 
 export default function HomePage() {
+  const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [user, setUser] = useState(null);
   const menuRef = useRef(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem('pickleball-user');
+      if (stored) setUser(JSON.parse(stored));
+    } catch {}
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -20,6 +30,12 @@ export default function HomePage() {
       window.removeEventListener('scroll', handleScroll, true);
     };
   }, [menuOpen]);
+
+  const handleLogout = () => {
+    localStorage.removeItem('pickleball-user');
+    setUser(null);
+    router.push('/');
+  };
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
@@ -85,13 +101,23 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Login button */}
-          <Link href="/login">
-            <span className="inline-flex items-center gap-2 bg-white/70 backdrop-blur-md px-5 py-2.5 rounded-xl shadow-soft border border-white/40 hover:bg-white/90 transition-all duration-300 cursor-pointer font-semibold text-foreground text-sm">
-              <LogIn className="w-4 h-4 text-court" />
-              Log In
-            </span>
-          </Link>
+          {/* Login/Logout button */}
+          {user ? (
+            <button
+              onClick={handleLogout}
+              className="inline-flex items-center gap-2 bg-white/70 backdrop-blur-md px-5 py-2.5 rounded-xl shadow-soft border border-white/40 hover:bg-white/90 transition-all duration-300 cursor-pointer font-semibold text-foreground text-sm"
+            >
+              <LogOut className="w-4 h-4 text-court" />
+              Log Out
+            </button>
+          ) : (
+            <Link href="/login">
+              <span className="inline-flex items-center gap-2 bg-white/70 backdrop-blur-md px-5 py-2.5 rounded-xl shadow-soft border border-white/40 hover:bg-white/90 transition-all duration-300 cursor-pointer font-semibold text-foreground text-sm">
+                <LogIn className="w-4 h-4 text-court" />
+                Log In
+              </span>
+            </Link>
+          )}
         </div>
 
         {/* Hero Section */}
