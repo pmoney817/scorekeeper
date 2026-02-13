@@ -1,11 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/router';
-import { Plus, Users, Trophy, Play, Edit3, Trash2, Shuffle, Target, Crown, MessageCircle, Send, Bot, Mic, ChevronUp, ChevronDown, ArrowUp, ArrowDown, Home, Save, History, Eye, ArrowLeft, X as XIcon, Share2, QrCode, Wifi } from 'lucide-react';
-import { QRCodeSVG } from 'qrcode.react';
+import { Plus, Users, Trophy, Play, Edit3, Trash2, Shuffle, Target, Crown, MessageCircle, Send, Bot, Mic, ChevronUp, ChevronDown, ArrowUp, ArrowDown, Home, Save, History, Eye, ArrowLeft, X as XIcon } from 'lucide-react';
 
 const PickleballTournament = () => {
-  const router = useRouter();
   const [currentView, setCurrentView] = useState('format-select'); // format-select, setup, ai-setup, tournament, match, results
   const [tournamentType, setTournamentType] = useState('roundrobin'); // roundrobin, bracket, poolplay, ladder
   const [tournamentPhase, setTournamentPhase] = useState(null); // null, 'pools', 'bracket', 'playing', 'session-results'
@@ -50,19 +47,6 @@ const PickleballTournament = () => {
 
   const [hydrated, setHydrated] = useState(false);
 
-  // QR code sharing state
-  const [shareCode, setShareCode] = useState(null);
-  const [isViewer, setIsViewer] = useState(false);
-  const [showQRCode, setShowQRCode] = useState(false);
-  const [shareError, setShareError] = useState(null);
-  const [viewerNotFound, setViewerNotFound] = useState(false);
-  const lastPushRef = useRef(null);
-
-  // Player identity (viewers who identify as participants)
-  const [playerIdentity, setPlayerIdentity] = useState(null);
-  const [showPlayerPicker, setShowPlayerPicker] = useState(false);
-  const lastPushTimeRef = useRef(0);
-
   // Restore state from localStorage on mount
   useEffect(() => {
     try {
@@ -97,74 +81,6 @@ const PickleballTournament = () => {
     setHydrated(true);
   }, []);
 
-  // Detect viewer mode from ?code= URL param
-  useEffect(() => {
-    if (!router.isReady) return;
-    const code = router.query.code;
-    if (!code) return;
-
-    setIsViewer(true);
-    setShareCode(code);
-
-    const fetchGame = async () => {
-      try {
-        const res = await fetch(`/api/games?code=${code}`);
-        if (!res.ok) {
-          setViewerNotFound(true);
-          return;
-        }
-        const data = await res.json();
-        const s = data.state;
-        if (s.currentView) setCurrentView(s.currentView);
-        if (s.tournamentType) setTournamentType(s.tournamentType);
-        if (s.participantType) setParticipantType(s.participantType);
-        if (s.participants) setParticipants(s.participants);
-        if (s.matches) setMatches(s.matches);
-        if (s.tournamentSettings) setTournamentSettings(s.tournamentSettings);
-        if (s.tournamentPhase) setTournamentPhase(s.tournamentPhase);
-        if (s.ladderSession) setLadderSession(s.ladderSession);
-        if (s.courtAssignments) setCourtAssignments(s.courtAssignments);
-        if (s.tournamentName) setTournamentName(s.tournamentName);
-        setHydrated(true);
-      } catch (e) {
-        console.error('Failed to fetch shared game:', e);
-        setViewerNotFound(true);
-      }
-    };
-
-    fetchGame();
-  }, [router.isReady, router.query.code]);
-
-  // Viewer polling: refresh state every 5 seconds
-  useEffect(() => {
-    if (!isViewer || !shareCode || viewerNotFound) return;
-
-    const interval = setInterval(async () => {
-      // Skip poll briefly after pushing to avoid overwriting our own change
-      if (playerIdentity && Date.now() - lastPushTimeRef.current < 3000) return;
-      try {
-        const res = await fetch(`/api/games?code=${shareCode}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        const s = data.state;
-        if (s.currentView) setCurrentView(s.currentView);
-        if (s.tournamentType) setTournamentType(s.tournamentType);
-        if (s.participantType) setParticipantType(s.participantType);
-        if (s.participants) setParticipants(s.participants);
-        if (s.matches) setMatches(s.matches);
-        if (s.tournamentSettings) setTournamentSettings(s.tournamentSettings);
-        if (s.tournamentPhase) setTournamentPhase(s.tournamentPhase);
-        if (s.ladderSession) setLadderSession(s.ladderSession);
-        if (s.courtAssignments) setCourtAssignments(s.courtAssignments);
-        if (s.tournamentName) setTournamentName(s.tournamentName);
-      } catch (e) {
-        console.error('Viewer poll error:', e);
-      }
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, [isViewer, shareCode, viewerNotFound]);
-
   // Save state to localStorage on changes
   useEffect(() => {
     if (!hydrated) return;
@@ -187,36 +103,6 @@ const PickleballTournament = () => {
       console.error('Failed to save tournament state:', e);
     }
   }, [hydrated, currentView, tournamentType, tournamentPhase, participantType, participants, matches, currentMatch, tournamentSettings, score, ladderSession, courtAssignments, tournamentName]);
-
-  // Push state to server when shareCode is active (all users)
-  useEffect(() => {
-    if (!hydrated || !shareCode) return;
-
-    const state = {
-      currentView,
-      tournamentType,
-      tournamentPhase,
-      participantType,
-      participants,
-      matches,
-      tournamentSettings,
-      ladderSession,
-      courtAssignments,
-      tournamentName,
-    };
-
-    const stateStr = JSON.stringify(state);
-    if (stateStr === lastPushRef.current) return;
-    lastPushRef.current = stateStr;
-
-    fetch('/api/games', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: shareCode, state }),
-    }).then(() => {
-      lastPushTimeRef.current = Date.now();
-    }).catch(e => console.error('Failed to push game state:', e));
-  }, [hydrated, isViewer, playerIdentity, shareCode, currentView, tournamentType, tournamentPhase, participantType, participants, matches, tournamentSettings, ladderSession, courtAssignments, tournamentName]);
 
   // Auto-save game when tournament completes (view transitions to results)
   const [autoSaved, setAutoSaved] = useState(false);
@@ -1571,76 +1457,11 @@ Examples:
     }
   };
 
-  // Share game: POST state to API, get share code, show QR modal
-  const shareGame = async () => {
-    try {
-      const state = {
-        currentView,
-        tournamentType,
-        tournamentPhase,
-        participantType,
-        participants,
-        matches,
-        tournamentSettings,
-        ladderSession,
-        courtAssignments,
-        tournamentName,
-      };
-      const res = await fetch('/api/games', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: shareCode, state }),
-      });
-      const data = await res.json();
-      setShareCode(data.code);
-      lastPushRef.current = JSON.stringify(state);
-      setShowQRCode(true);
-      setShareError(null);
-    } catch (e) {
-      console.error('Failed to share game:', e);
-      setShareError('Failed to share game. Make sure the server is running.');
-    }
-  };
-
-  const getShareUrl = () => {
-    if (typeof window === 'undefined' || !shareCode) return '';
-    return `${window.location.origin}/tournament?code=${shareCode}`;
-  };
-
-  // Check if a participant is playing in a given match
-  const isPlayerInMatch = (match, participantId) => {
-    if (!participantId || !match) return false;
-    const checkTeam = (team) => {
-      if (!team) return false;
-      if (Array.isArray(team)) return team.some(p => p.id === participantId);
-      return team.id === participantId;
-    };
-    return checkTeam(match.team1) || checkTeam(match.team2);
-  };
-
-  // Whether the current user can edit a match's scores
-  const canEditMatch = () => {
-    return true; // all users (organizer + shared link) have full access
-  };
-
-  // Render a score input next to a team name — read-only unless user can edit
+  // Render a score input next to a team name — always editable
   const renderScoreInput = (match, teamNum, size = 'normal') => {
     if (!match.team1 || !match.team2) return null;
     const val = match[teamNum] ?? '';
     const isSmall = size === 'small';
-
-    if (!canEditMatch(match)) {
-      const spanClass = isSmall
-        ? 'w-12 text-center text-sm font-bold border rounded-md py-0.5 inline-block'
-        : 'w-14 text-center text-lg font-bold border rounded-lg py-1 inline-block';
-      const borderColor = match.completed ? 'border-green-400 bg-green-50' : 'border-gray-300';
-      return (
-        <span className={`${spanClass} ${borderColor}`}>
-          {val === null || val === '' ? '-' : val}
-        </span>
-      );
-    }
-
     const inputClass = isSmall
       ? 'w-12 text-center text-sm font-bold border rounded-md py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
       : 'w-14 text-center text-lg font-bold border rounded-lg py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none';
@@ -1671,32 +1492,10 @@ Examples:
     return null;
   };
 
-  // Game Not Found for invalid share codes
-  if (viewerNotFound) {
-    return (
-      <div className="max-w-6xl mx-auto p-6 bg-gray-50 min-h-screen">
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <div className="text-center py-16">
-            <QrCode className="mx-auto text-gray-400 mb-4" size={64} />
-            <h2 className="text-2xl font-bold text-gray-800 mb-2">Game Not Found</h2>
-            <p className="text-gray-600 mb-6">This share code is invalid or the game has expired.</p>
-            <Link href="/tournament" className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors inline-block">
-              Start Your Own Tournament
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-6xl mx-auto p-6 bg-gray-50 min-h-screen">
       <div className="bg-white rounded-lg shadow-lg p-6">
-
-        {/* Live Sync Banner — hidden for now, re-enable later */}
-
-        {/* QR Code Modal — hidden for now, re-enable later */}
-
+        
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div className="flex items-center gap-4">
@@ -1738,20 +1537,9 @@ Examples:
                 Manual Setup
               </button>
             )}
-
+            
             {currentView !== 'setup' && currentView !== 'ai-setup' && (
               <div className="flex gap-2">
-                {/* Share Game button — hidden for now, re-enable later
-                {currentView === 'tournament' && (
-                  <button
-                    onClick={shareGame}
-                    className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-                  >
-                    <Share2 size={16} />
-                    {shareCode ? 'Show QR' : 'Share Game'}
-                  </button>
-                )}
-                */}
                 {(matches.length > 0 && matches.filter(m => !m.isReset || (m.team1 && m.team2)).every(m => m.completed)) || (tournamentType === 'ladder' && tournamentPhase === 'session-results') ? (
                   <button
                     onClick={() => setCurrentView('results')}
@@ -3226,43 +3014,34 @@ Examples:
             {/* Score Display */}
             <div className="bg-gray-50 rounded-lg p-6">
               <div className="grid grid-cols-2 gap-6">
-
+                
                 {/* Team 1 */}
                 <div className="text-center">
                   <h3 className="text-lg font-semibold mb-4">{getDisplayName(currentMatch.team1)}</h3>
-                  {!canEditMatch(currentMatch) ? (
-                    <div className="w-24 mx-auto text-6xl font-bold text-blue-600 text-center border-b-4 border-blue-300 bg-transparent">{score.team1}</div>
-                  ) : (
-                    <input
-                      type="number"
-                      min="0"
-                      value={score.team1}
-                      onChange={(e) => setScore({ ...score, team1: parseInt(e.target.value) || 0 })}
-                      className="w-24 mx-auto text-6xl font-bold text-blue-600 text-center border-b-4 border-blue-300 focus:border-blue-600 focus:outline-none bg-transparent"
-                    />
-                  )}
+                  <input
+                    type="number"
+                    min="0"
+                    value={score.team1}
+                    onChange={(e) => setScore({ ...score, team1: parseInt(e.target.value) || 0 })}
+                    className="w-24 mx-auto text-6xl font-bold text-blue-600 text-center border-b-4 border-blue-300 focus:border-blue-600 focus:outline-none bg-transparent"
+                  />
                 </div>
 
                 {/* Team 2 */}
                 <div className="text-center">
                   <h3 className="text-lg font-semibold mb-4">{getDisplayName(currentMatch.team2)}</h3>
-                  {!canEditMatch(currentMatch) ? (
-                    <div className="w-24 mx-auto text-6xl font-bold text-red-600 text-center border-b-4 border-red-300 bg-transparent">{score.team2}</div>
-                  ) : (
-                    <input
-                      type="number"
-                      min="0"
-                      value={score.team2}
-                      onChange={(e) => setScore({ ...score, team2: parseInt(e.target.value) || 0 })}
-                      className="w-24 mx-auto text-6xl font-bold text-red-600 text-center border-b-4 border-red-300 focus:border-red-600 focus:outline-none bg-transparent"
-                    />
-                  )}
+                  <input
+                    type="number"
+                    min="0"
+                    value={score.team2}
+                    onChange={(e) => setScore({ ...score, team2: parseInt(e.target.value) || 0 })}
+                    className="w-24 mx-auto text-6xl font-bold text-red-600 text-center border-b-4 border-red-300 focus:border-red-600 focus:outline-none bg-transparent"
+                  />
                 </div>
               </div>
             </div>
 
             {/* Match Controls */}
-            {canEditMatch(currentMatch) && (
             <div className="flex justify-center gap-4">
               <button
                 onClick={completeMatch}
@@ -3280,7 +3059,6 @@ Examples:
                 Back to Tournament
               </button>
             </div>
-            )}
           </div>
         )}
       </div>
