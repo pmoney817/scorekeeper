@@ -167,7 +167,7 @@ const PickleballTournament = () => {
 
   // Save state to localStorage on changes
   useEffect(() => {
-    if (!hydrated || isViewer) return;
+    if (!hydrated) return;
     try {
       localStorage.setItem('pickleball-tournament', JSON.stringify({
         currentView,
@@ -188,10 +188,9 @@ const PickleballTournament = () => {
     }
   }, [hydrated, currentView, tournamentType, tournamentPhase, participantType, participants, matches, currentMatch, tournamentSettings, score, ladderSession, courtAssignments, tournamentName]);
 
-  // Push state to server: organizer always, identified players too
+  // Push state to server when shareCode is active (all users)
   useEffect(() => {
     if (!hydrated || !shareCode) return;
-    if (isViewer && !playerIdentity) return; // unidentified viewers don't push
 
     const state = {
       currentView,
@@ -1620,10 +1619,8 @@ Examples:
   };
 
   // Whether the current user can edit a match's scores
-  const canEditMatch = (match) => {
-    if (!isViewer) return true; // organizer can edit anything
-    if (!playerIdentity) return false; // unidentified viewer is read-only
-    return isPlayerInMatch(match, playerIdentity.id);
+  const canEditMatch = () => {
+    return true; // all users (organizer + shared link) have full access
   };
 
   // Render a score input next to a team name — read-only unless user can edit
@@ -1696,74 +1693,11 @@ Examples:
     <div className="max-w-6xl mx-auto p-6 bg-gray-50 min-h-screen">
       <div className="bg-white rounded-lg shadow-lg p-6">
 
-        {/* Viewer Live Banner + Player Identity */}
-        {isViewer && !playerIdentity && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Wifi className="text-blue-500 animate-pulse" size={18} />
-              <span className="text-blue-700 font-medium text-sm">Live View — scores update automatically</span>
-            </div>
-            {participants.length > 0 && (
-              <button
-                onClick={() => setShowPlayerPicker(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
-              >
-                <Users size={14} />
-                I'm a Player
-              </button>
-            )}
-          </div>
-        )}
-        {isViewer && playerIdentity && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Wifi className="text-green-500 animate-pulse" size={18} />
-              <span className="text-green-700 font-medium text-sm">
-                Playing as <strong>{getDisplayName(playerIdentity)}</strong> — your scores sync live
-              </span>
-            </div>
-            <button
-              onClick={() => setShowPlayerPicker(true)}
-              className="text-green-600 hover:text-green-800 text-sm font-medium underline"
-            >
-              Change
-            </button>
-          </div>
-        )}
-
-        {/* Player Picker Modal */}
-        {showPlayerPicker && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowPlayerPicker(false)}>
-            <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full mx-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-gray-800">Who are you?</h3>
-                <button onClick={() => setShowPlayerPicker(false)} className="text-gray-400 hover:text-gray-600">
-                  <XIcon size={20} />
-                </button>
-              </div>
-              <p className="text-sm text-gray-500 mb-4">Select your name to enter scores for your matches.</p>
-              <div className="space-y-2">
-                {participants.map(p => (
-                  <button
-                    key={p.id}
-                    onClick={() => { setPlayerIdentity(p); setShowPlayerPicker(false); }}
-                    className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
-                      playerIdentity?.id === p.id
-                        ? 'border-green-400 bg-green-50 font-semibold'
-                        : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
-                    }`}
-                  >
-                    <span className="font-medium">{getDisplayName(p)}</span>
-                  </button>
-                ))}
-              </div>
-              <button
-                onClick={() => { setPlayerIdentity(null); setShowPlayerPicker(false); }}
-                className="w-full mt-3 text-center text-gray-500 hover:text-gray-700 text-sm py-2"
-              >
-                Just Watch
-              </button>
-            </div>
+        {/* Live Sync Banner */}
+        {isViewer && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex items-center justify-center gap-2">
+            <Wifi className="text-blue-500 animate-pulse" size={18} />
+            <span className="text-blue-700 font-medium text-sm">Live Game — changes sync automatically</span>
           </div>
         )}
 
@@ -1814,7 +1748,6 @@ Examples:
             </h1>
           </div>
 
-          {!isViewer && (
           <div className="flex gap-2">
             {currentView === 'format-select' && null}
 
@@ -1867,7 +1800,6 @@ Examples:
               </div>
             )}
           </div>
-          )}
         </div>
 
         {/* Format Selection View */}
@@ -3298,7 +3230,6 @@ Examples:
             )}
 
             {/* Action Buttons */}
-            {!isViewer && (
             <div className="flex justify-center gap-4 flex-wrap">
               <button
                 onClick={() => setCurrentView('tournament')}
@@ -3313,7 +3244,6 @@ Examples:
                 New Tournament
               </button>
             </div>
-            )}
           </div>
         )}
 
