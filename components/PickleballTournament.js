@@ -58,6 +58,11 @@ const PickleballTournament = () => {
   const [viewerNotFound, setViewerNotFound] = useState(false);
   const lastPushRef = useRef(null);
 
+  // Player identity (viewers who identify as participants)
+  const [playerIdentity, setPlayerIdentity] = useState(null);
+  const [showPlayerPicker, setShowPlayerPicker] = useState(false);
+  const lastPushTimeRef = useRef(0);
+
   // Restore state from localStorage on mount
   useEffect(() => {
     try {
@@ -135,6 +140,8 @@ const PickleballTournament = () => {
     if (!isViewer || !shareCode || viewerNotFound) return;
 
     const interval = setInterval(async () => {
+      // Skip poll briefly after pushing to avoid overwriting our own change
+      if (playerIdentity && Date.now() - lastPushTimeRef.current < 3000) return;
       try {
         const res = await fetch(`/api/games?code=${shareCode}`);
         if (!res.ok) return;
@@ -181,9 +188,10 @@ const PickleballTournament = () => {
     }
   }, [hydrated, currentView, tournamentType, tournamentPhase, participantType, participants, matches, currentMatch, tournamentSettings, score, ladderSession, courtAssignments, tournamentName]);
 
-  // Organizer push: sync state to server when shareCode is active
+  // Push state to server: organizer always, identified players too
   useEffect(() => {
-    if (!hydrated || isViewer || !shareCode) return;
+    if (!hydrated || !shareCode) return;
+    if (isViewer && !playerIdentity) return; // unidentified viewers don't push
 
     const state = {
       currentView,
@@ -206,8 +214,10 @@ const PickleballTournament = () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code: shareCode, state }),
+    }).then(() => {
+      lastPushTimeRef.current = Date.now();
     }).catch(e => console.error('Failed to push game state:', e));
-  }, [hydrated, isViewer, shareCode, currentView, tournamentType, tournamentPhase, participantType, participants, matches, tournamentSettings, ladderSession, courtAssignments, tournamentName]);
+  }, [hydrated, isViewer, playerIdentity, shareCode, currentView, tournamentType, tournamentPhase, participantType, participants, matches, tournamentSettings, ladderSession, courtAssignments, tournamentName]);
 
   // Auto-save game when tournament completes (view transitions to results)
   const [autoSaved, setAutoSaved] = useState(false);
@@ -1598,13 +1608,31 @@ Examples:
     return `${window.location.origin}/tournament?code=${shareCode}`;
   };
 
-  // Render a score input next to a team name — read-only for viewers
+  // Check if a participant is playing in a given match
+  const isPlayerInMatch = (match, participantId) => {
+    if (!participantId || !match) return false;
+    const checkTeam = (team) => {
+      if (!team) return false;
+      if (Array.isArray(team)) return team.some(p => p.id === participantId);
+      return team.id === participantId;
+    };
+    return checkTeam(match.team1) || checkTeam(match.team2);
+  };
+
+  // Whether the current user can edit a match's scores
+  const canEditMatch = (match) => {
+    if (!isViewer) return true; // organizer can edit anything
+    if (!playerIdentity) return false; // unidentified viewer is read-only
+    return isPlayerInMatch(match, playerIdentity.id);
+  };
+
+  // Render a score input next to a team name — read-only unless user can edit
   const renderScoreInput = (match, teamNum, size = 'normal') => {
     if (!match.team1 || !match.team2) return null;
     const val = match[teamNum] ?? '';
     const isSmall = size === 'small';
 
-    if (isViewer) {
+    if (!canEditMatch(match)) {
       const spanClass = isSmall
         ? 'w-12 text-center text-sm font-bold border rounded-md py-0.5 inline-block'
         : 'w-14 text-center text-lg font-bold border rounded-lg py-1 inline-block';
@@ -1668,11 +1696,74 @@ Examples:
     <div className="max-w-6xl mx-auto p-6 bg-gray-50 min-h-screen">
       <div className="bg-white rounded-lg shadow-lg p-6">
 
-        {/* Viewer Live Banner */}
-        {isViewer && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex items-center justify-center gap-2">
-            <Wifi className="text-blue-500 animate-pulse" size={18} />
-            <span className="text-blue-700 font-medium text-sm">Live View — scores update automatically</span>
+        {/* Viewer Live Banner + Player Identity */}
+        {isViewer && !playerIdentity && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Wifi className="text-blue-500 animate-pulse" size={18} />
+              <span className="text-blue-700 font-medium text-sm">Live View — scores update automatically</span>
+            </div>
+            {participants.length > 0 && (
+              <button
+                onClick={() => setShowPlayerPicker(true)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5"
+              >
+                <Users size={14} />
+                I'm a Player
+              </button>
+            )}
+          </div>
+        )}
+        {isViewer && playerIdentity && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Wifi className="text-green-500 animate-pulse" size={18} />
+              <span className="text-green-700 font-medium text-sm">
+                Playing as <strong>{getDisplayName(playerIdentity)}</strong> — your scores sync live
+              </span>
+            </div>
+            <button
+              onClick={() => setShowPlayerPicker(true)}
+              className="text-green-600 hover:text-green-800 text-sm font-medium underline"
+            >
+              Change
+            </button>
+          </div>
+        )}
+
+        {/* Player Picker Modal */}
+        {showPlayerPicker && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onClick={() => setShowPlayerPicker(false)}>
+            <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full mx-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-gray-800">Who are you?</h3>
+                <button onClick={() => setShowPlayerPicker(false)} className="text-gray-400 hover:text-gray-600">
+                  <XIcon size={20} />
+                </button>
+              </div>
+              <p className="text-sm text-gray-500 mb-4">Select your name to enter scores for your matches.</p>
+              <div className="space-y-2">
+                {participants.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={() => { setPlayerIdentity(p); setShowPlayerPicker(false); }}
+                    className={`w-full text-left px-4 py-3 rounded-lg border transition-colors ${
+                      playerIdentity?.id === p.id
+                        ? 'border-green-400 bg-green-50 font-semibold'
+                        : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+                    }`}
+                  >
+                    <span className="font-medium">{getDisplayName(p)}</span>
+                  </button>
+                ))}
+              </div>
+              <button
+                onClick={() => { setPlayerIdentity(null); setShowPlayerPicker(false); }}
+                className="w-full mt-3 text-center text-gray-500 hover:text-gray-700 text-sm py-2"
+              >
+                Just Watch
+              </button>
+            </div>
           </div>
         )}
 
@@ -3246,7 +3337,7 @@ Examples:
                 {/* Team 1 */}
                 <div className="text-center">
                   <h3 className="text-lg font-semibold mb-4">{getDisplayName(currentMatch.team1)}</h3>
-                  {isViewer ? (
+                  {!canEditMatch(currentMatch) ? (
                     <div className="w-24 mx-auto text-6xl font-bold text-blue-600 text-center border-b-4 border-blue-300 bg-transparent">{score.team1}</div>
                   ) : (
                     <input
@@ -3262,7 +3353,7 @@ Examples:
                 {/* Team 2 */}
                 <div className="text-center">
                   <h3 className="text-lg font-semibold mb-4">{getDisplayName(currentMatch.team2)}</h3>
-                  {isViewer ? (
+                  {!canEditMatch(currentMatch) ? (
                     <div className="w-24 mx-auto text-6xl font-bold text-red-600 text-center border-b-4 border-red-300 bg-transparent">{score.team2}</div>
                   ) : (
                     <input
@@ -3278,7 +3369,7 @@ Examples:
             </div>
 
             {/* Match Controls */}
-            {!isViewer && (
+            {canEditMatch(currentMatch) && (
             <div className="flex justify-center gap-4">
               <button
                 onClick={completeMatch}
