@@ -502,7 +502,7 @@ Examples:
     }
   };
 
-  // Generate Tournament Bracket
+  // Generate Single Elimination
   const generateBracket = () => {
     if (participants.length < 2) {
       alert('Need at least 2 participants for a tournament');
@@ -1586,7 +1586,7 @@ Examples:
                     <Trophy size={32} className="text-yellow-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-gray-800 mb-1">Bracket Tournament</h3>
+                    <h3 className="text-lg font-bold text-gray-800 mb-1">Single Elimination</h3>
                     <p className="text-sm text-gray-600 leading-relaxed">Single elimination bracket. Win or go home — perfect for competitive events.</p>
                   </div>
                 </div>
@@ -2014,7 +2014,7 @@ Examples:
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="roundrobin">Round Robin</option>
-                    <option value="bracket">Bracket Tournament</option>
+                    <option value="bracket">Single Elimination</option>
                     {/* <option value="poolplay">Pool Play into Bracket</option> */}
                     {/* <option value="ladder">Ladder League</option> */}
                     <option value="doubleelim">Double Elimination</option>
@@ -2036,17 +2036,18 @@ Examples:
                 {(tournamentType === 'roundrobin' || tournamentType === 'poolplay' || tournamentType === 'bracket' || tournamentType === 'doubleelim') && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Number of Courts</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="10"
+                    <select
                       value={tournamentSettings.courts}
                       onChange={(e) => setTournamentSettings({
                         ...tournamentSettings,
-                        courts: parseInt(e.target.value) || 1
+                        courts: parseInt(e.target.value)
                       })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                    >
+                      {[1,2,3,4,5,6,7,8,9,10,11,12].map(n => (
+                        <option key={n} value={n}>{n}</option>
+                      ))}
+                    </select>
                   </div>
                 )}
 
@@ -2324,7 +2325,7 @@ Examples:
                     className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
                   >
                     <Shuffle size={20} />
-                    Start {tournamentType === 'roundrobin' ? 'Round Robin' : tournamentType === 'poolplay' ? 'Pool Play' : tournamentType === 'ladder' ? 'Ladder League' : tournamentType === 'doubleelim' ? 'Double Elimination' : 'Tournament Bracket'}
+                    Start {tournamentType === 'roundrobin' ? 'Round Robin' : tournamentType === 'poolplay' ? 'Pool Play' : tournamentType === 'ladder' ? 'Ladder League' : tournamentType === 'doubleelim' ? 'Double Elimination' : 'Single Elimination'}
                   </button>
                   {!tournamentName.trim() && (
                     <p className="text-sm text-red-500 mt-2 text-center">
@@ -2352,7 +2353,7 @@ Examples:
                 {tournamentName && <h2 className="text-2xl font-bold text-gray-800">{tournamentName}</h2>}
                 <h3 className={`${tournamentName ? 'text-lg text-gray-500' : 'text-2xl'} font-semibold flex items-center gap-2`}>
                   <Trophy className="text-yellow-600" />
-                  {tournamentType === 'roundrobin' ? 'Round Robin' : tournamentType === 'poolplay' ? (tournamentPhase === 'bracket' ? 'Bracket Play' : 'Pool Play') : tournamentType === 'ladder' ? `Ladder League — Session ${ladderSession}` : tournamentType === 'doubleelim' ? 'Double Elimination' : 'Tournament Bracket'}
+                  {tournamentType === 'roundrobin' ? 'Round Robin' : tournamentType === 'poolplay' ? (tournamentPhase === 'bracket' ? 'Bracket Play' : 'Pool Play') : tournamentType === 'ladder' ? `Ladder League — Session ${ladderSession}` : tournamentType === 'doubleelim' ? 'Double Elimination' : 'Single Elimination'}
                 </h3>
               </div>
 
