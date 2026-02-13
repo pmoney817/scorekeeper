@@ -1,18 +1,26 @@
 import { useState } from 'react';
+import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { UserPlus, Eye, EyeOff } from 'lucide-react';
 
 export default function SignupPage() {
+  const router = useRouter();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [dob, setDob] = useState('');
+  const [level, setLevel] = useState('');
+  const [timesPerWeek, setTimesPerWeek] = useState('');
+  const [yearsPlaying, setYearsPlaying] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       return;
@@ -21,8 +29,46 @@ export default function SignupPage() {
       setError('Password must be at least 6 characters');
       return;
     }
-    alert('Sign up coming soon!');
+    if (!dob || !level || !timesPerWeek || !yearsPlaying) {
+      setError('Please fill out all fields');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'signup',
+          name,
+          email,
+          password,
+          dob,
+          level,
+          timesPerWeek,
+          yearsPlaying,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Something went wrong');
+        setLoading(false);
+        return;
+      }
+
+      localStorage.setItem('pickleball-user', JSON.stringify(data.user));
+      router.push('/');
+    } catch {
+      setError('Network error. Please try again.');
+      setLoading(false);
+    }
   };
+
+  const inputClass = "w-full px-4 py-3 bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-court/50 focus:border-court/30 text-foreground placeholder-muted-foreground font-body transition-all duration-200";
+  const selectClass = "w-full px-4 py-3 bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-court/50 focus:border-court/30 text-foreground font-body transition-all duration-200 appearance-none";
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
@@ -85,7 +131,7 @@ export default function SignupPage() {
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Your name"
                     required
-                    className="w-full px-4 py-3 bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-court/50 focus:border-court/30 text-foreground placeholder-muted-foreground font-body transition-all duration-200"
+                    className={inputClass}
                   />
                 </div>
 
@@ -97,8 +143,68 @@ export default function SignupPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
                     required
-                    className="w-full px-4 py-3 bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-court/50 focus:border-court/30 text-foreground placeholder-muted-foreground font-body transition-all duration-200"
+                    className={inputClass}
                   />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Date of Birth</label>
+                  <input
+                    type="date"
+                    value={dob}
+                    onChange={(e) => setDob(e.target.value)}
+                    required
+                    className={inputClass}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Skill Level</label>
+                  <select
+                    value={level}
+                    onChange={(e) => setLevel(e.target.value)}
+                    required
+                    className={selectClass}
+                  >
+                    <option value="" disabled>Select your level</option>
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="advanced">Advanced</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">How often do you play?</label>
+                  <select
+                    value={timesPerWeek}
+                    onChange={(e) => setTimesPerWeek(e.target.value)}
+                    required
+                    className={selectClass}
+                  >
+                    <option value="" disabled>Times per week</option>
+                    <option value="1">1 time per week</option>
+                    <option value="2">2 times per week</option>
+                    <option value="3">3 times per week</option>
+                    <option value="4">4 times per week</option>
+                    <option value="5+">5+ times per week</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">How long have you been playing?</label>
+                  <select
+                    value={yearsPlaying}
+                    onChange={(e) => setYearsPlaying(e.target.value)}
+                    required
+                    className={selectClass}
+                  >
+                    <option value="" disabled>Select experience</option>
+                    <option value="less-than-6-months">Less than 6 months</option>
+                    <option value="6-months-to-1-year">6 months - 1 year</option>
+                    <option value="1-2-years">1 - 2 years</option>
+                    <option value="2-5-years">2 - 5 years</option>
+                    <option value="5-plus-years">5+ years</option>
+                  </select>
                 </div>
 
                 <div>
@@ -110,7 +216,7 @@ export default function SignupPage() {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="At least 6 characters"
                       required
-                      className="w-full px-4 py-3 pr-12 bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-court/50 focus:border-court/30 text-foreground placeholder-muted-foreground font-body transition-all duration-200"
+                      className={`${inputClass} pr-12`}
                     />
                     <button
                       type="button"
@@ -130,15 +236,16 @@ export default function SignupPage() {
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Confirm your password"
                     required
-                    className="w-full px-4 py-3 bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-court/50 focus:border-court/30 text-foreground placeholder-muted-foreground font-body transition-all duration-200"
+                    className={inputClass}
                   />
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full bg-gradient-court text-white py-3.5 rounded-xl font-bold shadow-soft hover:shadow-elevated hover:scale-[1.02] transition-all duration-300 text-lg"
+                  disabled={loading}
+                  className="w-full bg-gradient-court text-white py-3.5 rounded-xl font-bold shadow-soft hover:shadow-elevated hover:scale-[1.02] transition-all duration-300 text-lg disabled:opacity-50 disabled:hover:scale-100"
                 >
-                  Sign Up
+                  {loading ? 'Creating Account...' : 'Sign Up'}
                 </button>
               </form>
 

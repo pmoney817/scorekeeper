@@ -1,15 +1,42 @@
 import { useState } from 'react';
+import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { Lock, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    alert('Login coming soon!');
+    setError('');
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'login', email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Something went wrong');
+        setLoading(false);
+        return;
+      }
+
+      localStorage.setItem('pickleball-user', JSON.stringify(data.user));
+      router.push('/');
+    } catch {
+      setError('Network error. Please try again.');
+      setLoading(false);
+    }
   };
 
   return (
@@ -56,6 +83,13 @@ export default function LoginPage() {
                 Sign in to your account
               </p>
 
+              {/* Error message */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-body mb-4">
+                  {error}
+                </div>
+              )}
+
               {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
@@ -101,15 +135,16 @@ export default function LoginPage() {
 
                 <button
                   type="submit"
-                  className="w-full bg-gradient-court text-white py-3.5 rounded-xl font-bold shadow-soft hover:shadow-elevated hover:scale-[1.02] transition-all duration-300 text-lg"
+                  disabled={loading}
+                  className="w-full bg-gradient-court text-white py-3.5 rounded-xl font-bold shadow-soft hover:shadow-elevated hover:scale-[1.02] transition-all duration-300 text-lg disabled:opacity-50 disabled:hover:scale-100"
                 >
-                  Log In
+                  {loading ? 'Logging In...' : 'Log In'}
                 </button>
               </form>
 
               {/* Sign up link */}
               <p className="text-center text-muted-foreground font-body text-sm mt-6">
-                Don't have an account?{' '}
+                Don&apos;t have an account?{' '}
                 <Link href="/signup">
                   <span className="text-court font-semibold hover:underline cursor-pointer">Sign Up</span>
                 </Link>
