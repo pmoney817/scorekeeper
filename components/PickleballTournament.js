@@ -504,8 +504,8 @@ Examples:
 
   // Generate Single Elimination
   const generateBracket = () => {
-    if (participants.length < 2) {
-      alert('Need at least 2 participants for a tournament');
+    if (participants.length < 4) {
+      alert('Need at least 4 participants for single elimination');
       return;
     }
 
@@ -596,8 +596,8 @@ Examples:
 
   // Generate Double Elimination Bracket
   const generateDoubleElim = () => {
-    if (participants.length < 2) {
-      alert('Need at least 2 participants for a tournament');
+    if (participants.length < 4) {
+      alert('Need at least 4 participants for double elimination');
       return;
     }
 
@@ -2319,7 +2319,7 @@ Examples:
                       else if (tournamentType === 'doubleelim') generateDoubleElim();
                       else generateBracket();
                     }}
-                    disabled={!tournamentName.trim() || (tournamentType === 'ladder' ? (participants.length < 4 || participants.length % 4 !== 0) : participants.length < 2)}
+                    disabled={!tournamentName.trim() || (tournamentType === 'ladder' ? (participants.length < 4 || participants.length % 4 !== 0) : (tournamentType === 'bracket' || tournamentType === 'doubleelim') ? participants.length < 4 : participants.length < 2)}
                     className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
                   >
                     <Shuffle size={20} />
@@ -2333,6 +2333,11 @@ Examples:
                   {tournamentType === 'ladder' && participants.length > 0 && participants.length % 4 !== 0 && (
                     <p className="text-sm text-red-500 mt-2 text-center">
                       Need a multiple of 4 players for ladder league (currently {participants.length})
+                    </p>
+                  )}
+                  {(tournamentType === 'bracket' || tournamentType === 'doubleelim') && participants.length > 0 && participants.length < 4 && (
+                    <p className="text-sm text-red-500 mt-2 text-center">
+                      Need at least 4 {participantType === 'team' ? 'teams' : 'players'} for {tournamentType === 'doubleelim' ? 'double' : 'single'} elimination (currently {participants.length})
                     </p>
                   )}
                 </div>
