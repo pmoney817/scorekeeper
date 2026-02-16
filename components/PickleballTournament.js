@@ -2060,18 +2060,25 @@ Examples:
                 {(tournamentType === 'roundrobin' || tournamentType === 'poolplay' || tournamentType === 'bracket' || tournamentType === 'doubleelim') && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Number of Courts</label>
-                    <select
+                    <input
+                      type="number"
+                      min="1"
+                      max="12"
                       value={tournamentSettings.courts}
-                      onChange={(e) => setTournamentSettings({
-                        ...tournamentSettings,
-                        courts: parseInt(e.target.value)
-                      })}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setTournamentSettings({
+                          ...tournamentSettings,
+                          courts: val === '' ? '' : parseInt(val)
+                        });
+                      }}
+                      onBlur={() => {
+                        const val = tournamentSettings.courts;
+                        if (!val || val < 1) setTournamentSettings({ ...tournamentSettings, courts: 1 });
+                        else if (val > 12) setTournamentSettings({ ...tournamentSettings, courts: 12 });
+                      }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    >
-                      {[1,2,3,4,5,6,7,8,9,10,11,12].map(n => (
-                        <option key={n} value={n}>{n}</option>
-                      ))}
-                    </select>
+                    />
                   </div>
                 )}
 
@@ -2084,10 +2091,18 @@ Examples:
                         min="1"
                         max="10"
                         value={tournamentSettings.rounds}
-                        onChange={(e) => setTournamentSettings({
-                          ...tournamentSettings,
-                          rounds: parseInt(e.target.value) || 1
-                        })}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setTournamentSettings({
+                            ...tournamentSettings,
+                            rounds: val === '' ? '' : parseInt(val)
+                          });
+                        }}
+                        onBlur={() => {
+                          const val = tournamentSettings.rounds;
+                          if (!val || val < 1) setTournamentSettings({ ...tournamentSettings, rounds: 1 });
+                          else if (val > 10) setTournamentSettings({ ...tournamentSettings, rounds: 10 });
+                        }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
@@ -2102,10 +2117,17 @@ Examples:
                         type="number"
                         min="1"
                         value={tournamentSettings.numPools}
-                        onChange={(e) => setTournamentSettings({
-                          ...tournamentSettings,
-                          numPools: parseInt(e.target.value) || 1
-                        })}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setTournamentSettings({
+                            ...tournamentSettings,
+                            numPools: val === '' ? '' : parseInt(val)
+                          });
+                        }}
+                        onBlur={() => {
+                          const val = tournamentSettings.numPools;
+                          if (!val || val < 1) setTournamentSettings({ ...tournamentSettings, numPools: 1 });
+                        }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
@@ -2115,10 +2137,17 @@ Examples:
                         type="number"
                         min="2"
                         value={tournamentSettings.poolSize}
-                        onChange={(e) => setTournamentSettings({
-                          ...tournamentSettings,
-                          poolSize: parseInt(e.target.value) || 4
-                        })}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setTournamentSettings({
+                            ...tournamentSettings,
+                            poolSize: val === '' ? '' : parseInt(val)
+                          });
+                        }}
+                        onBlur={() => {
+                          const val = tournamentSettings.poolSize;
+                          if (!val || val < 2) setTournamentSettings({ ...tournamentSettings, poolSize: 2 });
+                        }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
