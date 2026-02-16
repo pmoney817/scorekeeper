@@ -1555,8 +1555,15 @@ Examples:
               </button>
             )}
             
-            {currentView !== 'setup' && currentView !== 'ai-setup' && (
+            {currentView !== 'setup' && currentView !== 'ai-setup' && currentView !== 'format-select' && (
               <div className="flex gap-2">
+                <button
+                  onClick={() => resetTournament()}
+                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                >
+                  <Home size={16} />
+                  New Game
+                </button>
                 {(matches.length > 0 && matches.filter(m => !m.isReset || (m.team1 && m.team2)).every(m => m.completed)) || (tournamentType === 'ladder' && tournamentPhase === 'session-results') ? (
                   <button
                     onClick={() => setCurrentView('results')}
