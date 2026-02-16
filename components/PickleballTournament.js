@@ -67,13 +67,17 @@ const PickleballTournament = () => {
         if (data.courtAssignments) setCourtAssignments(data.courtAssignments);
         if (data.tournamentName) setTournamentName(data.tournamentName);
       }
-      const games = localStorage.getItem('pickleball-saved-games');
-      if (games) {
-        setSavedGames(JSON.parse(games));
+      try {
+        const games = localStorage.getItem('pickleball-saved-games');
+        if (games) setSavedGames(JSON.parse(games));
+      } catch (e) {
+        console.error('Failed to restore saved games:', e);
       }
-      const roster = localStorage.getItem('pickleball-player-roster');
-      if (roster) {
-        setPlayerRoster(JSON.parse(roster));
+      try {
+        const roster = localStorage.getItem('pickleball-player-roster');
+        if (roster) setPlayerRoster(JSON.parse(roster));
+      } catch (e) {
+        console.error('Failed to restore player roster:', e);
       }
     } catch (e) {
       console.error('Failed to restore tournament state:', e);
@@ -166,7 +170,20 @@ Examples:
       // Try to parse JSON from the response
       try {
         // Clean the response to extract just the JSON
-        const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+        // Find the first balanced JSON object in the response
+        let jsonMatch = null;
+        const startIdx = aiResponse.indexOf('{');
+        if (startIdx !== -1) {
+          let depth = 0;
+          for (let i = startIdx; i < aiResponse.length; i++) {
+            if (aiResponse[i] === '{') depth++;
+            else if (aiResponse[i] === '}') depth--;
+            if (depth === 0) {
+              jsonMatch = [aiResponse.substring(startIdx, i + 1)];
+              break;
+            }
+          }
+        }
         if (jsonMatch) {
           const extractedInfo = JSON.parse(jsonMatch[0]);
           setExtractedData(extractedInfo);
@@ -220,7 +237,8 @@ Examples:
     recognition.continuous = false;
     recognition.onstart = () => setIsListening(true);
     recognition.onresult = (event) => {
-      const transcript = event.results[0][0].transcript;
+      const transcript = event.results?.[0]?.[0]?.transcript;
+      if (!transcript) return;
       setUserInput(prev => prev ? prev + ' ' + transcript : transcript);
     };
     recognition.onerror = () => setIsListening(false);
@@ -1116,6 +1134,7 @@ Examples:
     const isBracketMatch = tournamentType === 'bracket' || (tournamentType === 'poolplay' && tournamentPhase === 'bracket');
     if (isBracketMatch && activeMatch.bracketPosition !== undefined) {
       const bracketMatches = updatedMatches.filter(m => m.phase === 'bracket' || tournamentType === 'bracket');
+      if (bracketMatches.length === 0) return;
       const maxRound = Math.max(...bracketMatches.map(m => m.round));
       if (activeMatch.round < maxRound) {
         const nextRoundMatch = updatedMatches.find(m =>

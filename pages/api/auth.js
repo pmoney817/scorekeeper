@@ -5,8 +5,20 @@ function hashEmail(email) {
   return crypto.createHash('sha256').update(email.toLowerCase().trim()).digest('hex');
 }
 
-function hashPassword(password) {
-  return crypto.createHash('sha256').update(password).digest('hex');
+function hashPassword(password, salt) {
+  if (!salt) salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+  return `${salt}:${hash}`;
+}
+
+function verifyPassword(password, stored) {
+  // Support legacy SHA-256 hashes (no colon separator)
+  if (!stored.includes(':')) {
+    return stored === crypto.createHash('sha256').update(password).digest('hex');
+  }
+  const [salt, hash] = stored.split(':');
+  const verify = crypto.pbkdf2Sync(password, salt, 100000, 64, 'sha512').toString('hex');
+  return hash === verify;
 }
 
 function blobPath(emailHash) {
@@ -93,11 +105,46 @@ export default async function handler(req, res) {
         return res.status(401).json({ error: 'Invalid email or password' });
       }
 
-      if (user.passwordHash !== hashPassword(password)) {
+      if (!verifyPassword(password, user.passwordHash)) {
         return res.status(401).json({ error: 'Invalid email or password' });
       }
 
+      // Migrate legacy SHA-256 hash to PBKDF2 on successful login
+      if (!user.passwordHash.includes(':')) {
+        user.passwordHash = hashPassword(password);
+        await putUser(emailHash, user);
+      }
+
       return res.status(200).json({ user: sanitizeUser(user) });
+    }
+
+    if (action === 'reset-password') {
+      const { email, newPassword } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+      }
+
+      const emailHash = hashEmail(email);
+      const user = await getUser(emailHash);
+
+      if (!user) {
+        return res.status(404).json({ error: 'No account found with this email' });
+      }
+
+      if (!newPassword) {
+        // Step 1: Just verify the email exists
+        return res.status(200).json({ exists: true });
+      }
+
+      // Step 2: Set new password
+      if (newPassword.length < 6) {
+        return res.status(400).json({ error: 'Password must be at least 6 characters' });
+      }
+
+      user.passwordHash = hashPassword(newPassword);
+      await putUser(emailHash, user);
+      return res.status(200).json({ success: true });
     }
 
     return res.status(400).json({ error: 'Invalid action' });

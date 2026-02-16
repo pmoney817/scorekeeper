@@ -1,15 +1,85 @@
 import { useState } from 'react';
+import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { KeyRound, CheckCircle } from 'lucide-react';
+import { KeyRound, CheckCircle, Eye, EyeOff } from 'lucide-react';
 
 export default function ResetPasswordPage() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
-  const [submitted, setSubmitted] = useState(false);
+  const [step, setStep] = useState('email'); // 'email', 'password', 'success'
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleEmailSubmit = async (e) => {
     e.preventDefault();
-    setSubmitted(true);
+    setError('');
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reset-password', email }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Something went wrong');
+        setLoading(false);
+        return;
+      }
+
+      setStep('password');
+      setLoading(false);
+    } catch {
+      setError('Network error. Please try again.');
+      setLoading(false);
+    }
   };
+
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (newPassword.length < 6) {
+      setError('Password must be at least 6 characters');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reset-password', email, newPassword }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || 'Something went wrong');
+        setLoading(false);
+        return;
+      }
+
+      setStep('success');
+      setLoading(false);
+    } catch {
+      setError('Network error. Please try again.');
+      setLoading(false);
+    }
+  };
+
+  const inputClass = "w-full px-4 py-3 bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-court/50 focus:border-court/30 text-foreground placeholder-muted-foreground font-body transition-all duration-200";
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
@@ -42,8 +112,8 @@ export default function ResetPasswordPage() {
 
               {/* Icon */}
               <div className="flex justify-center mb-6">
-                <div className={`p-3.5 rounded-2xl shadow-soft ${submitted ? 'bg-gradient-sunny' : 'bg-gradient-court'}`}>
-                  {submitted ? (
+                <div className={`p-3.5 rounded-2xl shadow-soft ${step === 'success' ? 'bg-gradient-sunny' : 'bg-gradient-court'}`}>
+                  {step === 'success' ? (
                     <CheckCircle className="w-6 h-6 text-foreground" />
                   ) : (
                     <KeyRound className="w-6 h-6 text-white" />
@@ -51,40 +121,38 @@ export default function ResetPasswordPage() {
                 </div>
               </div>
 
-              {submitted ? (
+              {/* Error message */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-body mb-4">
+                  {error}
+                </div>
+              )}
+
+              {step === 'success' && (
                 <>
-                  {/* Success state */}
                   <h1 className="text-2xl md:text-3xl font-display font-bold text-center text-foreground mb-3">
-                    Check Your Email
+                    Password Reset
                   </h1>
                   <p className="text-center text-muted-foreground font-body text-sm mb-8 leading-relaxed">
-                    If an account exists for <span className="font-semibold text-foreground">{email}</span>, we've sent a password reset link.
+                    Your password has been updated. You can now log in with your new password.
                   </p>
-
                   <Link href="/login">
                     <span className="block w-full bg-gradient-court text-white py-3.5 rounded-xl font-bold shadow-soft hover:shadow-elevated hover:scale-[1.02] transition-all duration-300 text-lg text-center cursor-pointer">
-                      Back to Login
+                      Log In
                     </span>
                   </Link>
-
-                  <button
-                    onClick={() => { setSubmitted(false); setEmail(''); }}
-                    className="w-full mt-3 text-center text-sm text-court font-semibold hover:underline cursor-pointer py-2"
-                  >
-                    Try a different email
-                  </button>
                 </>
-              ) : (
+              )}
+
+              {step === 'email' && (
                 <>
-                  {/* Form state */}
                   <h1 className="text-2xl md:text-3xl font-display font-bold text-center text-foreground mb-2">
                     Reset Password
                   </h1>
                   <p className="text-center text-muted-foreground font-body text-sm mb-8 leading-relaxed">
-                    Enter your email and we'll send you a link to reset your password
+                    Enter your email to reset your password
                   </p>
-
-                  <form onSubmit={handleSubmit} className="space-y-4">
+                  <form onSubmit={handleEmailSubmit} className="space-y-4">
                     <div>
                       <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Email</label>
                       <input
@@ -93,24 +161,80 @@ export default function ResetPasswordPage() {
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="you@example.com"
                         required
-                        className="w-full px-4 py-3 bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-court/50 focus:border-court/30 text-foreground placeholder-muted-foreground font-body transition-all duration-200"
+                        className={inputClass}
                       />
                     </div>
-
                     <button
                       type="submit"
-                      className="w-full bg-gradient-court text-white py-3.5 rounded-xl font-bold shadow-soft hover:shadow-elevated hover:scale-[1.02] transition-all duration-300 text-lg"
+                      disabled={loading}
+                      className="w-full bg-gradient-court text-white py-3.5 rounded-xl font-bold shadow-soft hover:shadow-elevated hover:scale-[1.02] transition-all duration-300 text-lg disabled:opacity-50"
                     >
-                      Send Reset Link
+                      {loading ? 'Checking...' : 'Continue'}
                     </button>
                   </form>
-
                   <p className="text-center text-muted-foreground font-body text-sm mt-6">
                     Remember your password?{' '}
                     <Link href="/login">
                       <span className="text-court font-semibold hover:underline cursor-pointer">Log In</span>
                     </Link>
                   </p>
+                </>
+              )}
+
+              {step === 'password' && (
+                <>
+                  <h1 className="text-2xl md:text-3xl font-display font-bold text-center text-foreground mb-2">
+                    New Password
+                  </h1>
+                  <p className="text-center text-muted-foreground font-body text-sm mb-8 leading-relaxed">
+                    Enter a new password for <span className="font-semibold text-foreground">{email}</span>
+                  </p>
+                  <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">New Password</label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="At least 6 characters"
+                          required
+                          className={`${inputClass} pr-12`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Confirm Password</label>
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Confirm new password"
+                        required
+                        className={inputClass}
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full bg-gradient-court text-white py-3.5 rounded-xl font-bold shadow-soft hover:shadow-elevated hover:scale-[1.02] transition-all duration-300 text-lg disabled:opacity-50"
+                    >
+                      {loading ? 'Resetting...' : 'Reset Password'}
+                    </button>
+                  </form>
+                  <button
+                    onClick={() => { setStep('email'); setError(''); }}
+                    className="w-full mt-3 text-center text-sm text-court font-semibold hover:underline cursor-pointer py-2"
+                  >
+                    Use a different email
+                  </button>
                 </>
               )}
             </div>
