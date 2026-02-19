@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Shuffle, Clock, Target, ChevronDown, ChevronUp, Dumbbell, Heart, ChevronLeft, ChevronRight, List, CheckCircle, Calendar } from 'lucide-react';
 import { getRandomDrill, getDrillsByLevel, pickleballDrills } from '../data/drills';
 
@@ -64,7 +64,7 @@ export default function DrillCard() {
     setDrill(getRandomDrill('beginner'));
   }, []);
 
-  const getCurrentDrillList = useCallback(() => {
+  const currentDrillList = useMemo(() => {
     if (viewMode === 'favorites') {
       return pickleballDrills.filter(d => favorites.includes(d.id));
     }
@@ -165,7 +165,7 @@ export default function DrillCard() {
   };
 
   const handleBrowse = (direction) => {
-    const drills = getCurrentDrillList();
+    const drills = currentDrillList;
     if (drills.length === 0) return;
 
     setIsAnimating(true);
@@ -190,7 +190,7 @@ export default function DrillCard() {
     advanced: 'bg-rose-500',
   };
 
-  const currentList = getCurrentDrillList();
+  const currentList = currentDrillList;
   const favCount = favorites.length;
   const completedCount = Object.keys(completions).filter(id => completions[id].length > 0).length;
 

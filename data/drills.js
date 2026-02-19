@@ -903,6 +903,7 @@ export const getDrillsByLevel = (level) => {
 
 export const getRandomDrill = (level) => {
   const drills = level ? getDrillsByLevel(level) : pickleballDrills;
+  if (drills.length === 0) return pickleballDrills[0];
   const randomIndex = Math.floor(Math.random() * drills.length);
   return drills[randomIndex];
 };

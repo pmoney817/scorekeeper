@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { Plus, Users, Trophy, Play, Edit3, Trash2, Shuffle, Target, Crown, MessageCircle, Send, Bot, Mic, ChevronUp, ChevronDown, ArrowUp, ArrowDown, Home, Save, History, Eye, ArrowLeft, X as XIcon } from 'lucide-react';
 
@@ -24,6 +24,7 @@ const PickleballTournament = () => {
 
   // AI Setup states
   const [aiMessages, setAiMessages] = useState([]);
+  const msgIdRef = useRef(0);
   const [userInput, setUserInput] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [extractedData, setExtractedData] = useState(null);
@@ -85,27 +86,30 @@ const PickleballTournament = () => {
     setHydrated(true);
   }, []);
 
-  // Save state to localStorage on changes
+  // Save state to localStorage on changes (debounced to avoid thrashing on rapid score updates)
   useEffect(() => {
     if (!hydrated) return;
-    try {
-      localStorage.setItem('pickleball-tournament', JSON.stringify({
-        currentView,
-        tournamentType,
-        tournamentPhase,
-        participantType,
-        participants,
-        matches,
-        currentMatch,
-        tournamentSettings,
-        score,
-        ladderSession,
-        courtAssignments,
-        tournamentName,
-      }));
-    } catch (e) {
-      console.error('Failed to save tournament state:', e);
-    }
+    const timer = setTimeout(() => {
+      try {
+        localStorage.setItem('pickleball-tournament', JSON.stringify({
+          currentView,
+          tournamentType,
+          tournamentPhase,
+          participantType,
+          participants,
+          matches,
+          currentMatch,
+          tournamentSettings,
+          score,
+          ladderSession,
+          courtAssignments,
+          tournamentName,
+        }));
+      } catch (e) {
+        console.error('Failed to save tournament state:', e);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
   }, [hydrated, currentView, tournamentType, tournamentPhase, participantType, participants, matches, currentMatch, tournamentSettings, score, ladderSession, courtAssignments, tournamentName]);
 
   // Auto-save game when tournament completes (view transitions to results)
@@ -118,9 +122,17 @@ const PickleballTournament = () => {
   }, [currentView]);
 
   // AI Setup functionality
+  const abortControllerRef = useRef(null);
+  useEffect(() => {
+    return () => { abortControllerRef.current?.abort(); };
+  }, []);
+
   const processAISetup = async (userMessage) => {
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
     setIsProcessing(true);
-    
+
     const messages = [
       {
         role: "user",
@@ -155,6 +167,7 @@ Examples:
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ messages }),
+        signal: controller.signal,
       });
 
       const data = await response.json();
@@ -163,8 +176,8 @@ Examples:
       // Add messages to chat
       setAiMessages(prev => [
         ...prev,
-        { role: "user", content: userMessage },
-        { role: "assistant", content: "I'll help you set up the tournament! Let me extract the details..." }
+        { id: ++msgIdRef.current, role: "user", content: userMessage },
+        { id: ++msgIdRef.current, role: "assistant", content: "I'll help you set up the tournament! Let me extract the details..." }
       ]);
 
       // Try to parse JSON from the response
@@ -190,7 +203,7 @@ Examples:
           
           setAiMessages(prev => [
             ...prev,
-            { role: "assistant", content: "Perfect! I extracted your tournament setup. Please review the details below and click 'Apply Settings' if everything looks good, or continue chatting to make adjustments." }
+            { id: ++msgIdRef.current, role: "assistant", content: "Perfect! I extracted your tournament setup. Please review the details below and click 'Apply Settings' if everything looks good, or continue chatting to make adjustments." }
           ]);
         } else {
           throw new Error("No JSON found in response");
@@ -199,15 +212,16 @@ Examples:
         console.error("Failed to parse AI response:", parseError);
         setAiMessages(prev => [
           ...prev,
-          { role: "assistant", content: "I had trouble understanding the tournament details. Could you please be more specific? For example: 'I want a round robin tournament with 6 individual players: John, Mary, Bob, Alice, Carol, and Dave. Play to 11 points.'" }
+          { id: ++msgIdRef.current, role: "assistant", content: "I had trouble understanding the tournament details. Could you please be more specific? For example: 'I want a round robin tournament with 6 individual players: John, Mary, Bob, Alice, Carol, and Dave. Play to 11 points.'" }
         ]);
       }
     } catch (error) {
+      if (error.name === 'AbortError') return;
       console.error("AI API error:", error);
       setAiMessages(prev => [
         ...prev,
-        { role: "user", content: userMessage },
-        { role: "assistant", content: "Sorry, I'm having trouble connecting right now. You can still set up your tournament manually using the regular setup form." }
+        { id: ++msgIdRef.current, role: "user", content: userMessage },
+        { id: ++msgIdRef.current, role: "assistant", content: "Sorry, I'm having trouble connecting right now. You can still set up your tournament manually using the regular setup form." }
       ]);
     }
     
@@ -1133,12 +1147,12 @@ Examples:
     // For bracket tournaments (or bracket phase of pool play), advance winner
     const isBracketMatch = tournamentType === 'bracket' || (tournamentType === 'poolplay' && tournamentPhase === 'bracket');
     if (isBracketMatch && activeMatch.bracketPosition !== undefined) {
-      const bracketMatches = updatedMatches.filter(m => m.phase === 'bracket' || tournamentType === 'bracket');
+      const bracketMatches = updatedMatches.filter(m => m.phase === 'bracket' || (tournamentType === 'bracket' && !m.phase));
       if (bracketMatches.length === 0) return;
       const maxRound = Math.max(...bracketMatches.map(m => m.round));
       if (activeMatch.round < maxRound) {
         const nextRoundMatch = updatedMatches.find(m =>
-          (m.phase === 'bracket' || tournamentType === 'bracket') &&
+          (m.phase === 'bracket' || (tournamentType === 'bracket' && !m.phase)) &&
           m.round === activeMatch.round + 1 &&
           Math.floor(activeMatch.bracketPosition / 2) === m.bracketPosition
         );
@@ -1290,8 +1304,8 @@ Examples:
     return true;
   };
 
-  // Get standings with tiebreakers: wins → head-to-head → point differential → win % → total points
-  const getStandings = () => {
+  // Get standings with tiebreakers: wins → head-to-head → point differential → win % → total points (memoized)
+  const getStandings = useMemo(() => () => {
     // Calculate point differential for each participant
     const pointDiffs = {};
     participants.forEach(p => { pointDiffs[p.id] = 0; });
@@ -1339,7 +1353,7 @@ Examples:
         if (b.winPercentage !== a.winPercentage) return b.winPercentage - a.winPercentage;
         return b.points - a.points;
       });
-  };
+  }, [participants, matches]);
 
   const saveGame = () => {
     const gameName = tournamentName || 'Untitled Game';
@@ -1874,8 +1888,8 @@ Examples:
                     </div>
                   </div>
                 ) : (
-                  aiMessages.map((message, index) => (
-                    <div key={index} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                  aiMessages.map((message) => (
+                    <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                       <div className={`max-w-[80%] p-3 rounded-lg ${
                         message.role === 'user' 
                           ? 'bg-blue-600 text-white' 
