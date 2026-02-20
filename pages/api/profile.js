@@ -61,6 +61,7 @@ export default async function handler(req, res) {
         timesPerWeek: user.timesPerWeek,
         createdAt: user.createdAt,
         duprRating: user.duprRating || null,
+        avatarUrl: user.avatarUrl || null,
         bio: extras.bio || '',
         visibility: extras.visibility || 'friends',
       };
@@ -68,25 +69,46 @@ export default async function handler(req, res) {
       return res.status(200).json({ profile });
     }
 
-    // Update profile (bio, visibility)
+    // Update profile (bio, visibility, and user fields)
     if (action === 'update') {
-      const { email, bio, visibility } = req.body;
+      const { email, bio, visibility, name, duprRating, level, timesPerWeek, yearsPlaying } = req.body;
       if (!email) {
         return res.status(400).json({ error: 'Email is required' });
       }
 
       const emailHash = hashEmail(email);
-      const existing = (await getBlob('profiles', emailHash)) || {};
 
+      // Update profile extras (bio, visibility)
+      const existing = (await getBlob('profiles', emailHash)) || {};
       const updated = {
         ...existing,
         ...(bio !== undefined && { bio: bio.slice(0, 500) }),
         ...(visibility !== undefined && { visibility }),
         updatedAt: Date.now(),
       };
-
       await putBlob('profiles', emailHash, updated);
-      return res.status(200).json({ profile: updated });
+
+      // Update user fields if any provided
+      const userFields = { name, duprRating, level, timesPerWeek, yearsPlaying };
+      const hasUserUpdates = Object.values(userFields).some(v => v !== undefined);
+
+      let user = null;
+      if (hasUserUpdates) {
+        user = await getBlob('users', emailHash);
+        if (user) {
+          if (name !== undefined) user.name = name;
+          if (duprRating !== undefined) user.duprRating = duprRating;
+          if (level !== undefined) user.level = level;
+          if (timesPerWeek !== undefined) user.timesPerWeek = timesPerWeek;
+          if (yearsPlaying !== undefined) user.yearsPlaying = yearsPlaying;
+          await putBlob('users', emailHash, user);
+        }
+      }
+
+      return res.status(200).json({
+        profile: updated,
+        ...(user && { user }),
+      });
     }
 
     return res.status(400).json({ error: 'Invalid action' });

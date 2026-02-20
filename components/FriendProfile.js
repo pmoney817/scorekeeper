@@ -80,9 +80,13 @@ export default function FriendProfile({ emailHash }) {
       {/* Profile Header */}
       <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-white/50 shadow-soft mb-6">
         <div className="flex items-center gap-5">
-          <div className="w-16 h-16 rounded-full bg-court/20 flex items-center justify-center text-court font-bold text-2xl flex-shrink-0">
-            {profile.name.charAt(0).toUpperCase()}
-          </div>
+          {profile.avatarUrl ? (
+            <img src={profile.avatarUrl} alt={profile.name} className="w-16 h-16 rounded-full object-cover flex-shrink-0" />
+          ) : (
+            <div className="w-16 h-16 rounded-full bg-court/20 flex items-center justify-center text-court font-bold text-2xl flex-shrink-0">
+              {profile.name.charAt(0).toUpperCase()}
+            </div>
+          )}
           <div>
             <h1 className="text-2xl font-display font-bold text-foreground">{profile.name}</h1>
             <p className="text-muted-foreground">{profile.email}</p>

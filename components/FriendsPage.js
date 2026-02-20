@@ -217,9 +217,13 @@ export default function FriendsPage() {
                 key={friend.emailHash}
                 className="flex items-center gap-4 bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/50 shadow-soft hover:shadow-elevated transition-all duration-200"
               >
-                <div className="w-10 h-10 rounded-full bg-court/20 flex items-center justify-center text-court font-bold text-lg flex-shrink-0">
-                  {friend.name.charAt(0).toUpperCase()}
-                </div>
+                {friend.avatarUrl ? (
+                  <img src={friend.avatarUrl} alt={friend.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-court/20 flex items-center justify-center text-court font-bold text-lg flex-shrink-0">
+                    {friend.name.charAt(0).toUpperCase()}
+                  </div>
+                )}
                 <div className="flex-1 min-w-0">
                   <Link href={`/friends/${friend.emailHash}`}>
                     <span className="font-semibold text-foreground hover:text-court transition-colors cursor-pointer">
@@ -276,9 +280,13 @@ export default function FriendsPage() {
                     key={result.emailHash}
                     className="flex items-center gap-4 bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/50"
                   >
-                    <div className="w-10 h-10 rounded-full bg-ball/20 flex items-center justify-center text-foreground font-bold text-lg flex-shrink-0">
-                      {result.name.charAt(0).toUpperCase()}
-                    </div>
+                    {result.avatarUrl ? (
+                      <img src={result.avatarUrl} alt={result.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-full bg-ball/20 flex items-center justify-center text-foreground font-bold text-lg flex-shrink-0">
+                        {result.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-foreground">{result.name}</p>
                       <p className="text-sm text-muted-foreground truncate">{result.email}</p>

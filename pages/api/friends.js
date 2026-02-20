@@ -77,6 +77,7 @@ export default async function handler(req, res) {
               email: user.email,
               level: user.level,
               duprRating: user.duprRating || null,
+              avatarUrl: user.avatarUrl || null,
             });
           }
         } catch {}

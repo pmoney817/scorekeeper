@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Trophy, ArrowRight, Sparkles, Target, Menu, X, LogIn, LogOut, Users, Swords } from 'lucide-react';
+import { Trophy, ArrowRight, Sparkles, Target, Menu, X, LogIn, LogOut, Users, Swords, Settings } from 'lucide-react';
 import FriendRequestBadge from './FriendRequestBadge';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -99,6 +99,14 @@ export default function HomePage() {
                       <span className="font-semibold text-foreground text-sm">Challenges</span>
                     </div>
                   </Link>
+                  {user && (
+                    <Link href="/settings" onClick={() => setMenuOpen(false)}>
+                      <div className="flex items-center gap-3 px-5 py-3 hover:bg-court/10 transition-colors cursor-pointer">
+                        <Settings className="w-5 h-5 text-court" />
+                        <span className="font-semibold text-foreground text-sm">Settings</span>
+                      </div>
+                    </Link>
+                  )}
                 </div>
               )}
             </div>
@@ -119,13 +127,26 @@ export default function HomePage() {
 
           {/* Login/Logout button */}
           {user ? (
-            <button
-              onClick={handleLogout}
-              className="inline-flex items-center gap-2 bg-white/70 backdrop-blur-md px-5 py-2.5 rounded-xl shadow-soft border border-white/40 hover:bg-white/90 transition-all duration-300 cursor-pointer font-semibold text-foreground text-sm"
-            >
-              <LogOut className="w-4 h-4 text-court" />
-              Log Out
-            </button>
+            <div className="flex items-center gap-3">
+              {user.avatarUrl ? (
+                <img
+                  src={user.avatarUrl}
+                  alt={user.name}
+                  className="w-9 h-9 rounded-full object-cover border-2 border-white/50"
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-court/20 flex items-center justify-center text-court font-bold text-sm border-2 border-white/50">
+                  {user.name?.charAt(0).toUpperCase() || '?'}
+                </div>
+              )}
+              <button
+                onClick={handleLogout}
+                className="inline-flex items-center gap-2 bg-white/70 backdrop-blur-md px-5 py-2.5 rounded-xl shadow-soft border border-white/40 hover:bg-white/90 transition-all duration-300 cursor-pointer font-semibold text-foreground text-sm"
+              >
+                <LogOut className="w-4 h-4 text-court" />
+                Log Out
+              </button>
+            </div>
           ) : (
             <Link href="/login">
               <span className="inline-flex items-center gap-2 bg-white/70 backdrop-blur-md px-5 py-2.5 rounded-xl shadow-soft border border-white/40 hover:bg-white/90 transition-all duration-300 cursor-pointer font-semibold text-foreground text-sm">
