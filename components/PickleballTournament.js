@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
-import { Plus, Users, Trophy, Play, Edit3, Trash2, Shuffle, Target, Crown, MessageCircle, Send, Bot, Mic, ChevronUp, ChevronDown, ArrowUp, ArrowDown, Home, Save, History, Eye, ArrowLeft, X as XIcon } from 'lucide-react';
+import { Plus, Users, Trophy, Play, Edit3, Trash2, Shuffle, Target, Crown, MessageCircle, Send, Bot, Mic, ChevronUp, ChevronDown, ArrowUp, ArrowDown, Home, Save, History, Eye, ArrowLeft, X as XIcon, UserPlus, Share2, Loader2 as Loader2Icon } from 'lucide-react';
+import { useRouter } from 'next/router';
+import TournamentInviteModal from './TournamentInviteModal';
+import ShareGameModal from './ShareGameModal';
 
 const PickleballTournament = () => {
   const [currentView, setCurrentView] = useState('format-select'); // format-select, setup, ai-setup, tournament, match, results
@@ -47,6 +50,13 @@ const PickleballTournament = () => {
   const [playerRoster, setPlayerRoster] = useState([]);
 
   const [hydrated, setHydrated] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareCode, setShareCode] = useState(null);
+  const [shareUrl, setShareUrl] = useState('');
+  const [isSharing, setIsSharing] = useState(false);
+
+  const router = useRouter();
 
   // Restore state from localStorage on mount
   useEffect(() => {
@@ -111,6 +121,40 @@ const PickleballTournament = () => {
     }, 300);
     return () => clearTimeout(timer);
   }, [hydrated, currentView, tournamentType, tournamentPhase, participantType, participants, matches, currentMatch, tournamentSettings, score, ladderSession, courtAssignments, tournamentName]);
+
+  // Load shared game from ?code= query param
+  useEffect(() => {
+    if (!hydrated || !router.isReady) return;
+    const { code } = router.query;
+    if (!code) return;
+    (async () => {
+      try {
+        const res = await fetch(`/api/games?code=${code}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.state) {
+          const s = data.state;
+          if (s.currentView) setCurrentView(s.currentView);
+          if (s.tournamentType) setTournamentType(s.tournamentType);
+          if (s.participantType) setParticipantType(s.participantType);
+          if (s.participants) setParticipants(s.participants);
+          if (s.matches) setMatches(s.matches);
+          if (s.currentMatch) setCurrentMatch(s.currentMatch);
+          if (s.tournamentSettings) setTournamentSettings(s.tournamentSettings);
+          if (s.score) setScore(s.score);
+          if (s.tournamentPhase) setTournamentPhase(s.tournamentPhase);
+          if (s.ladderSession) setLadderSession(s.ladderSession);
+          if (s.courtAssignments) setCourtAssignments(s.courtAssignments);
+          if (s.tournamentName) setTournamentName(s.tournamentName);
+          setShareCode(code);
+        }
+      } catch (e) {
+        console.error('Failed to load shared game:', e);
+      }
+      // Clean up the URL
+      router.replace('/tournament', undefined, { shallow: true });
+    })();
+  }, [hydrated, router.isReady]);
 
   // Auto-save game when tournament completes (view transitions to results)
   const [autoSaved, setAutoSaved] = useState(false);
@@ -542,7 +586,23 @@ Examples:
     }
 
     // Create a single elimination bracket with bye support
-    const shuffledParticipants = [...participants].sort(() => Math.random() - 0.5);
+    const shuffled = [...participants].sort(() => Math.random() - 0.5);
+
+    // Auto-pair individuals into doubles teams (2 players per side)
+    let shuffledParticipants;
+    if (participantType === 'individual') {
+      shuffledParticipants = [];
+      for (let i = 0; i < shuffled.length - 1; i += 2) {
+        shuffledParticipants.push([shuffled[i], shuffled[i + 1]]);
+      }
+      // If odd number, last player gets a bye partner-less (solo entry)
+      if (shuffled.length % 2 !== 0) {
+        shuffledParticipants.push([shuffled[shuffled.length - 1]]);
+      }
+    } else {
+      shuffledParticipants = shuffled;
+    }
+
     const bracketMatches = [];
 
     // Pad to next power of 2 for balanced bracket
@@ -633,7 +693,22 @@ Examples:
       return;
     }
 
-    const shuffled = [...participants].sort(() => Math.random() - 0.5);
+    const rawShuffled = [...participants].sort(() => Math.random() - 0.5);
+
+    // Auto-pair individuals into doubles teams (2 players per side)
+    let shuffled;
+    if (participantType === 'individual') {
+      shuffled = [];
+      for (let i = 0; i < rawShuffled.length - 1; i += 2) {
+        shuffled.push([rawShuffled[i], rawShuffled[i + 1]]);
+      }
+      if (rawShuffled.length % 2 !== 0) {
+        shuffled.push([rawShuffled[rawShuffled.length - 1]]);
+      }
+    } else {
+      shuffled = rawShuffled;
+    }
+
     const allMatches = [];
 
     // --- Winners Bracket ---
@@ -1387,7 +1462,70 @@ Examples:
     }
     setSavedGames(updated);
     localStorage.setItem('pickleball-saved-games', JSON.stringify(updated));
+
+    // Publish activity event (fire-and-forget)
+    try {
+      const stored = localStorage.getItem('pickleball-user');
+      if (stored) {
+        const u = JSON.parse(stored);
+        const standings = game.standings || [];
+        const winner = standings.length > 0 ? standings[0].name : null;
+        fetch('/api/activity', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'publish',
+            email: u.email,
+            event: {
+              type: 'game-complete',
+              userName: u.name,
+              message: `completed a ${game.type === 'roundrobin' ? 'round robin' : game.type === 'bracket' ? 'single elimination' : 'double elimination'} game "${game.name}"`,
+              details: winner ? `Winner: ${winner} (${standings.length} players)` : `${standings.length} players`,
+              gameName: game.name,
+              gameType: game.type,
+            },
+          }),
+        }).catch(() => {});
+      }
+    } catch {}
+
     return game;
+  };
+
+  const shareGame = async () => {
+    setIsSharing(true);
+    try {
+      const state = {
+        currentView,
+        tournamentType,
+        tournamentPhase,
+        participantType,
+        participants,
+        matches,
+        currentMatch,
+        tournamentSettings,
+        score,
+        ladderSession,
+        courtAssignments,
+        tournamentName,
+      };
+      const res = await fetch('/api/games', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: shareCode || undefined, state }),
+      });
+      const data = await res.json();
+      if (data.code) {
+        setShareCode(data.code);
+        const url = `${window.location.origin}/tournament?code=${data.code}`;
+        setShareUrl(url);
+        setShowShareModal(true);
+      }
+    } catch (e) {
+      console.error('Share game error:', e);
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   const resetTournament = () => {
@@ -1571,6 +1709,14 @@ Examples:
             
             {currentView !== 'setup' && currentView !== 'ai-setup' && currentView !== 'format-select' && (
               <div className="flex gap-2">
+                <button
+                  onClick={shareGame}
+                  disabled={isSharing}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
+                >
+                  {isSharing ? <Loader2Icon size={16} className="animate-spin" /> : <Share2 size={16} />}
+                  Share
+                </button>
                 <button
                   onClick={() => resetTournament()}
                   className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
@@ -2034,6 +2180,17 @@ Examples:
                 placeholder="e.g. Saturday Night Showdown"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
               />
+            </div>
+
+            {/* Invite Friends */}
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowInviteModal(true)}
+                className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium text-sm transition-colors"
+              >
+                <UserPlus size={16} />
+                Invite Friends
+              </button>
             </div>
 
             {/* Tournament Settings */}
@@ -2889,27 +3046,38 @@ Examples:
                     </h3>
                     <div className="grid gap-3">
                       {roundMatches.map((match) => (
-                        <div key={match.id} className={`p-4 rounded-lg border-2 ${
-                          match.completed ? 'bg-green-50 border-green-200' :
-                          match.team1 && match.team2 ? 'bg-white border-gray-200' : 'bg-gray-100 border-gray-300'
-                        }`}>
-                          <div className="flex justify-between items-center">
-                            <div className="flex-1">
-                              <div className="flex justify-between items-center mb-2">
-                                <span className="font-medium">{getDisplayName(match.team1)}</span>
-                                {renderScoreInput(match, 'score1')}
+                        match.isBye ? (
+                          <div key={match.id} className="p-3 rounded-lg border-2 bg-blue-50 border-blue-200 flex items-center justify-between">
+                            <span className="font-medium text-blue-800">{getDisplayName(match.team1)}</span>
+                            <span className="text-sm text-blue-600 font-medium">BYE — auto-advances</span>
+                          </div>
+                        ) : !match.team1 && !match.team2 ? (
+                          <div key={match.id} className="p-4 rounded-lg border-2 bg-gray-50 border-dashed border-gray-300 text-center text-gray-400 text-sm">
+                            Waiting for previous round
+                          </div>
+                        ) : (
+                          <div key={match.id} className={`p-4 rounded-lg border-2 ${
+                            match.completed ? 'bg-green-50 border-green-200' :
+                            match.team1 && match.team2 ? 'bg-white border-gray-200' : 'bg-gray-100 border-gray-300'
+                          }`}>
+                            <div className="flex justify-between items-center">
+                              <div className="flex-1">
+                                <div className="flex justify-between items-center mb-2">
+                                  <span className="font-medium">{getDisplayName(match.team1)}</span>
+                                  {renderScoreInput(match, 'score1')}
+                                </div>
+                                <div className="text-gray-400 text-sm mb-2">vs</div>
+                                <div className="flex justify-between items-center">
+                                  <span className="font-medium">{getDisplayName(match.team2)}</span>
+                                  {renderScoreInput(match, 'score2')}
+                                </div>
                               </div>
-                              <div className="text-gray-400 text-sm mb-2">vs</div>
-                              <div className="flex justify-between items-center">
-                                <span className="font-medium">{getDisplayName(match.team2)}</span>
-                                {renderScoreInput(match, 'score2')}
+                              <div className="ml-3">
+                                {renderMatchAction(match)}
                               </div>
-                            </div>
-                            <div className="ml-3">
-                              {renderMatchAction(match)}
                             </div>
                           </div>
-                        </div>
+                        )
                       ))}
                     </div>
                   </div>
@@ -3055,6 +3223,14 @@ Examples:
             {/* Action Buttons */}
             <div className="flex justify-center gap-4 flex-wrap">
               <button
+                onClick={shareGame}
+                disabled={isSharing}
+                className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
+              >
+                {isSharing ? <Loader2Icon size={16} className="animate-spin" /> : <Share2 size={16} />}
+                Share Results
+              </button>
+              <button
                 onClick={() => setCurrentView('tournament')}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors"
               >
@@ -3134,6 +3310,21 @@ Examples:
           </div>
         )}
       </div>
+
+      {showInviteModal && (
+        <TournamentInviteModal
+          onClose={() => setShowInviteModal(false)}
+          tournamentName={tournamentName}
+        />
+      )}
+
+      {showShareModal && shareCode && (
+        <ShareGameModal
+          onClose={() => setShowShareModal(false)}
+          shareCode={shareCode}
+          shareUrl={shareUrl}
+        />
+      )}
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { UserPlus, Eye, EyeOff } from 'lucide-react';
@@ -11,11 +11,41 @@ export default function SignupPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [dob, setDob] = useState('');
+  const [dobMonth, setDobMonth] = useState('');
+  const [dobDay, setDobDay] = useState('');
+  const [dobYear, setDobYear] = useState('');
   const [level, setLevel] = useState('');
   const [timesPerWeek, setTimesPerWeek] = useState('');
   const [yearsPlaying, setYearsPlaying] = useState('');
+  const [duprRating, setDuprRating] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Sync dropdowns into dob string (YYYY-MM-DD)
+  useEffect(() => {
+    if (dobMonth && dobDay && dobYear) {
+      setDob(`${dobYear}-${dobMonth.padStart(2, '0')}-${dobDay.padStart(2, '0')}`);
+    } else {
+      setDob('');
+    }
+  }, [dobMonth, dobDay, dobYear]);
+
+  const months = [
+    { value: '1', label: 'January' }, { value: '2', label: 'February' },
+    { value: '3', label: 'March' }, { value: '4', label: 'April' },
+    { value: '5', label: 'May' }, { value: '6', label: 'June' },
+    { value: '7', label: 'July' }, { value: '8', label: 'August' },
+    { value: '9', label: 'September' }, { value: '10', label: 'October' },
+    { value: '11', label: 'November' }, { value: '12', label: 'December' },
+  ];
+
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 100 }, (_, i) => currentYear - i);
+
+  const daysInMonth = dobMonth && dobYear
+    ? new Date(parseInt(dobYear), parseInt(dobMonth), 0).getDate()
+    : 31;
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -48,6 +78,7 @@ export default function SignupPage() {
           level,
           timesPerWeek,
           yearsPlaying,
+          duprRating: duprRating ? parseFloat(duprRating) : null,
         }),
       });
 
@@ -149,13 +180,38 @@ export default function SignupPage() {
 
                 <div>
                   <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Date of Birth</label>
-                  <input
-                    type="date"
-                    value={dob}
-                    onChange={(e) => setDob(e.target.value)}
-                    required
-                    className={inputClass}
-                  />
+                  <div className="grid grid-cols-3 gap-2">
+                    <select
+                      value={dobMonth}
+                      onChange={(e) => setDobMonth(e.target.value)}
+                      className={selectClass}
+                    >
+                      <option value="" disabled>Month</option>
+                      {months.map(m => (
+                        <option key={m.value} value={m.value}>{m.label}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={dobDay}
+                      onChange={(e) => setDobDay(e.target.value)}
+                      className={selectClass}
+                    >
+                      <option value="" disabled>Day</option>
+                      {days.map(d => (
+                        <option key={d} value={String(d)}>{d}</option>
+                      ))}
+                    </select>
+                    <select
+                      value={dobYear}
+                      onChange={(e) => setDobYear(e.target.value)}
+                      className={selectClass}
+                    >
+                      <option value="" disabled>Year</option>
+                      {years.map(y => (
+                        <option key={y} value={String(y)}>{y}</option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 <div>
@@ -171,6 +227,22 @@ export default function SignupPage() {
                     <option value="intermediate">Intermediate</option>
                     <option value="advanced">Advanced</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">
+                    DUPR Rating <span className="font-normal text-muted-foreground">(optional)</span>
+                  </label>
+                  <input
+                    type="number"
+                    step="0.001"
+                    min="2.000"
+                    max="8.000"
+                    value={duprRating}
+                    onChange={(e) => setDuprRating(e.target.value)}
+                    placeholder="e.g. 3.500"
+                    className={inputClass}
+                  />
                 </div>
 
                 <div>

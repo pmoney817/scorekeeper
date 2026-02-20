@@ -60,7 +60,7 @@ export default async function handler(req, res) {
     const { action } = req.body;
 
     if (action === 'signup') {
-      const { name, email, password, dob, level, timesPerWeek, yearsPlaying } = req.body;
+      const { name, email, password, dob, level, timesPerWeek, yearsPlaying, duprRating } = req.body;
 
       if (!name || !email || !password || !dob || !level || !timesPerWeek || !yearsPlaying) {
         return res.status(400).json({ error: 'All fields are required' });
@@ -84,6 +84,7 @@ export default async function handler(req, res) {
         level,
         timesPerWeek,
         yearsPlaying,
+        duprRating: duprRating || null,
         createdAt: Date.now(),
       };
 

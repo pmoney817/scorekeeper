@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { Trophy, ArrowRight, Sparkles, Target, Menu, X, LogIn, LogOut } from 'lucide-react';
+import { Trophy, ArrowRight, Sparkles, Target, Menu, X, LogIn, LogOut, Users, Swords } from 'lucide-react';
+import FriendRequestBadge from './FriendRequestBadge';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 
@@ -83,6 +84,21 @@ export default function HomePage() {
                       <span className="font-semibold text-foreground text-sm">Practice Drills</span>
                     </div>
                   </Link>
+                  <Link href="/friends" onClick={() => setMenuOpen(false)}>
+                    <div className="flex items-center gap-3 px-5 py-3 hover:bg-court/10 transition-colors cursor-pointer relative">
+                      <div className="relative">
+                        <Users className="w-5 h-5 text-court" />
+                        <FriendRequestBadge />
+                      </div>
+                      <span className="font-semibold text-foreground text-sm">Friends</span>
+                    </div>
+                  </Link>
+                  <Link href="/challenges" onClick={() => setMenuOpen(false)}>
+                    <div className="flex items-center gap-3 px-5 py-3 hover:bg-court/10 transition-colors cursor-pointer">
+                      <Swords className="w-5 h-5 text-court" />
+                      <span className="font-semibold text-foreground text-sm">Challenges</span>
+                    </div>
+                  </Link>
                 </div>
               )}
             </div>
@@ -157,9 +173,10 @@ export default function HomePage() {
 
         {/* Feature Cards */}
         <section className="px-4 md:px-8 pb-8">
-          <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
               { icon: Trophy, title: 'Tournament Manager', desc: 'Round robin, brackets, pool play, ladder leagues', color: 'court', href: '/tournament' },
+              { icon: Users, title: 'Friends', desc: 'Connect with players and track activity', color: 'court', href: '/friends' },
               { icon: Sparkles, title: 'Positive Vibes', desc: 'Fuel your mindset', color: 'ball', href: '/affirmations' },
               { icon: Target, title: 'Practice Drills', desc: 'Beginner to advanced drills with step-by-step guides', color: 'court', href: '/drills' },
             ].map((feature, i) => (
