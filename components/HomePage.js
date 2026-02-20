@@ -93,7 +93,7 @@ export default function HomePage() {
             {/* Daily Vibes text */}
             <div>
               <h2 className="text-xl md:text-2xl font-display font-bold text-foreground leading-tight">
-                Your Daily <span className="text-gradient-court">Vibes</span>
+                Daily <span className="text-gradient-court">Vibes</span>
               </h2>
               <p className="text-muted-foreground font-body text-xs md:text-sm">
                 Fuel your mindset and sharpen your game
