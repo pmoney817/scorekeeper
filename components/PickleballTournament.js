@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
-import { Plus, Users, Trophy, Play, Edit3, Trash2, Shuffle, Target, Crown, MessageCircle, Send, Bot, Mic, ChevronUp, ChevronDown, ArrowUp, ArrowDown, Home, Save, History, Eye, ArrowLeft, X as XIcon, UserPlus, Share2, Loader2 as Loader2Icon } from 'lucide-react';
+import { Plus, Users, Trophy, Play, Edit3, Trash2, Shuffle, Target, Crown, MessageCircle, Send, Bot, Mic, ChevronUp, ChevronDown, ArrowUp, ArrowDown, Home, Save, History, Eye, ArrowLeft, X as XIcon, UserPlus, Share2, Loader2 as Loader2Icon, StopCircle } from 'lucide-react';
 import { useRouter } from 'next/router';
 import TournamentInviteModal from './TournamentInviteModal';
 import ShareGameModal from './ShareGameModal';
@@ -585,6 +585,28 @@ Examples:
       return;
     }
 
+    // Calculate team count to check for byes before generating
+    const teamCount = participantType === 'individual' ? Math.ceil(participants.length / 2) : participants.length;
+    const nextPow2 = Math.pow(2, Math.ceil(Math.log2(teamCount)));
+    const byesNeeded = nextPow2 - teamCount;
+
+    if (byesNeeded > 0) {
+      const prevPow2 = nextPow2 / 2;
+      const playersForPerfect = participantType === 'individual' ? nextPow2 * 2 : nextPow2;
+      const playersForSmaller = participantType === 'individual' ? prevPow2 * 2 : prevPow2;
+      const byeTeamWord = byesNeeded === 1 ? 'team' : 'teams';
+      const unit = participantType === 'individual' ? 'players' : 'teams';
+
+      if (!confirm(
+        `Heads up: With ${participants.length} ${unit}, ${byesNeeded} ${byeTeamWord} will get a bye (sit out round 1).\n\n` +
+        `For no byes, you need ${playersForPerfect} ${unit}` +
+        (prevPow2 >= 2 ? ` or ${playersForSmaller} ${unit}` : '') +
+        `.\n\nContinue anyway?`
+      )) {
+        return;
+      }
+    }
+
     // Create a single elimination bracket with bye support
     const shuffled = [...participants].sort(() => Math.random() - 0.5);
 
@@ -691,6 +713,28 @@ Examples:
     if (participants.length < 4) {
       alert('Need at least 4 participants for double elimination');
       return;
+    }
+
+    // Calculate team count to check for byes before generating
+    const teamCount = participantType === 'individual' ? Math.ceil(participants.length / 2) : participants.length;
+    const nextPow2 = Math.pow(2, Math.ceil(Math.log2(teamCount)));
+    const byesNeeded = nextPow2 - teamCount;
+
+    if (byesNeeded > 0) {
+      const prevPow2 = nextPow2 / 2;
+      const playersForPerfect = participantType === 'individual' ? nextPow2 * 2 : nextPow2;
+      const playersForSmaller = participantType === 'individual' ? prevPow2 * 2 : prevPow2;
+      const byeTeamWord = byesNeeded === 1 ? 'team' : 'teams';
+      const unit = participantType === 'individual' ? 'players' : 'teams';
+
+      if (!confirm(
+        `Heads up: With ${participants.length} ${unit}, ${byesNeeded} ${byeTeamWord} will get a bye (sit out round 1).\n\n` +
+        `For no byes, you need ${playersForPerfect} ${unit}` +
+        (prevPow2 >= 2 ? ` or ${playersForSmaller} ${unit}` : '') +
+        `.\n\nContinue anyway?`
+      )) {
+        return;
+      }
     }
 
     const rawShuffled = [...participants].sort(() => Math.random() - 0.5);
@@ -1730,6 +1774,19 @@ Examples:
                     className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg transition-colors"
                   >
                     Results
+                  </button>
+                ) : matches.length > 0 && matches.some(m => m.completed) ? (
+                  <button
+                    onClick={() => {
+                      if (confirm('End this game early? Results will be based on completed matches only.')) {
+                        saveGame();
+                        setCurrentView('results');
+                      }
+                    }}
+                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                  >
+                    <StopCircle size={16} />
+                    End Game
                   </button>
                 ) : null}
               </div>
