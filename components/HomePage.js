@@ -74,7 +74,7 @@ export default function HomePage() {
                   <Link href="/affirmations" onClick={() => setMenuOpen(false)}>
                     <div className="flex items-center gap-3 px-5 py-3 hover:bg-ball/10 transition-colors cursor-pointer">
                       <Sparkles className="w-5 h-5 text-ball" />
-                      <span className="font-semibold text-foreground text-sm">Affirmations</span>
+                      <span className="font-semibold text-foreground text-sm">Vibes</span>
                     </div>
                   </Link>
                   <Link href="/drills" onClick={() => setMenuOpen(false)}>
@@ -160,7 +160,7 @@ export default function HomePage() {
           <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[
               { icon: Trophy, title: 'Tournament Manager', desc: 'Round robin, brackets, pool play, ladder leagues', color: 'court', href: '/tournament' },
-              { icon: Sparkles, title: 'Daily Affirmations', desc: 'Start every session with the right mindset', color: 'ball', href: '/affirmations' },
+              { icon: Sparkles, title: 'Positive Vibes', desc: 'Fuel your mindset', color: 'ball', href: '/affirmations' },
               { icon: Target, title: 'Practice Drills', desc: 'Beginner to advanced drills with step-by-step guides', color: 'court', href: '/drills' },
             ].map((feature, i) => (
               <Link key={i} href={feature.href}>
