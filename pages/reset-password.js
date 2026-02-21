@@ -7,6 +7,8 @@ export default function ResetPasswordPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [step, setStep] = useState('email'); // 'email', 'password', 'success'
+  const [securityQuestion, setSecurityQuestion] = useState(null);
+  const [securityAnswer, setSecurityAnswer] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -33,6 +35,7 @@ export default function ResetPasswordPage() {
         return;
       }
 
+      setSecurityQuestion(data.securityQuestion || null);
       setStep('password');
       setLoading(false);
     } catch {
@@ -53,6 +56,10 @@ export default function ResetPasswordPage() {
       setError('Passwords do not match');
       return;
     }
+    if (securityQuestion && !securityAnswer.trim()) {
+      setError('Please answer the security question');
+      return;
+    }
 
     setLoading(true);
 
@@ -60,7 +67,12 @@ export default function ResetPasswordPage() {
       const res = await fetch('/api/auth', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'reset-password', email, newPassword }),
+        body: JSON.stringify({
+          action: 'reset-password',
+          email,
+          newPassword,
+          ...(securityQuestion && { securityAnswer: securityAnswer.trim() }),
+        }),
       });
 
       const data = await res.json();
@@ -184,12 +196,28 @@ export default function ResetPasswordPage() {
               {step === 'password' && (
                 <>
                   <h1 className="text-2xl md:text-3xl font-display font-bold text-center text-foreground mb-2">
-                    New Password
+                    Reset Password
                   </h1>
                   <p className="text-center text-muted-foreground font-body text-sm mb-8 leading-relaxed">
-                    Enter a new password for <span className="font-semibold text-foreground">{email}</span>
+                    {securityQuestion
+                      ? <>Answer your security question and set a new password for <span className="font-semibold text-foreground">{email}</span></>
+                      : <>Enter a new password for <span className="font-semibold text-foreground">{email}</span></>
+                    }
                   </p>
                   <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                    {securityQuestion && (
+                      <div>
+                        <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">{securityQuestion}</label>
+                        <input
+                          type="text"
+                          value={securityAnswer}
+                          onChange={(e) => setSecurityAnswer(e.target.value)}
+                          placeholder="Your answer"
+                          required
+                          className={inputClass}
+                        />
+                      </div>
+                    )}
                     <div>
                       <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">New Password</label>
                       <div className="relative">

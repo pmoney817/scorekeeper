@@ -18,6 +18,8 @@ export default function SignupPage() {
   const [timesPerWeek, setTimesPerWeek] = useState('');
   const [yearsPlaying, setYearsPlaying] = useState('');
   const [duprRating, setDuprRating] = useState('');
+  const [securityQuestion, setSecurityQuestion] = useState('');
+  const [securityAnswer, setSecurityAnswer] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -59,7 +61,7 @@ export default function SignupPage() {
       setError('Password must be at least 6 characters');
       return;
     }
-    if (!dob || !level || !timesPerWeek || !yearsPlaying) {
+    if (!dob || !level || !timesPerWeek || !yearsPlaying || !securityQuestion || !securityAnswer.trim()) {
       setError('Please fill out all fields');
       return;
     }
@@ -79,6 +81,8 @@ export default function SignupPage() {
           timesPerWeek,
           yearsPlaying,
           duprRating: duprRating ? parseFloat(duprRating) : null,
+          securityQuestion,
+          securityAnswer: securityAnswer.trim(),
         }),
       });
 
@@ -277,6 +281,36 @@ export default function SignupPage() {
                     <option value="2-5-years">2 - 5 years</option>
                     <option value="5-plus-years">5+ years</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Security Question</label>
+                  <select
+                    value={securityQuestion}
+                    onChange={(e) => setSecurityQuestion(e.target.value)}
+                    required
+                    className={selectClass}
+                  >
+                    <option value="" disabled>Select a security question</option>
+                    <option value="What city were you born in?">What city were you born in?</option>
+                    <option value="What is the name of your first pet?">What is the name of your first pet?</option>
+                    <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+                    <option value="What was the name of your first school?">What was the name of your first school?</option>
+                    <option value="What is your favorite sports team?">What is your favorite sports team?</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Security Answer</label>
+                  <input
+                    type="text"
+                    value={securityAnswer}
+                    onChange={(e) => setSecurityAnswer(e.target.value)}
+                    placeholder="Your answer"
+                    required
+                    className={inputClass}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Used to verify your identity when resetting your password</p>
                 </div>
 
                 <div>

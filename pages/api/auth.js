@@ -45,8 +45,12 @@ async function putUser(emailHash, data) {
   });
 }
 
+function hashSecurityAnswer(answer) {
+  return crypto.createHash('sha256').update(answer.toLowerCase().trim()).digest('hex');
+}
+
 function sanitizeUser(user) {
-  const { passwordHash, ...profile } = user;
+  const { passwordHash, securityAnswerHash, ...profile } = user;
   return profile;
 }
 
@@ -60,9 +64,9 @@ export default async function handler(req, res) {
     const { action } = req.body;
 
     if (action === 'signup') {
-      const { name, email, password, dob, level, timesPerWeek, yearsPlaying, duprRating } = req.body;
+      const { name, email, password, dob, level, timesPerWeek, yearsPlaying, duprRating, securityQuestion, securityAnswer } = req.body;
 
-      if (!name || !email || !password || !dob || !level || !timesPerWeek || !yearsPlaying) {
+      if (!name || !email || !password || !dob || !level || !timesPerWeek || !yearsPlaying || !securityQuestion || !securityAnswer) {
         return res.status(400).json({ error: 'All fields are required' });
       }
 
@@ -85,6 +89,8 @@ export default async function handler(req, res) {
         timesPerWeek,
         yearsPlaying,
         duprRating: duprRating || null,
+        securityQuestion,
+        securityAnswerHash: hashSecurityAnswer(securityAnswer),
         createdAt: Date.now(),
       };
 
@@ -120,7 +126,7 @@ export default async function handler(req, res) {
     }
 
     if (action === 'reset-password') {
-      const { email, newPassword } = req.body;
+      const { email, newPassword, securityAnswer } = req.body;
 
       if (!email) {
         return res.status(400).json({ error: 'Email is required' });
@@ -134,11 +140,23 @@ export default async function handler(req, res) {
       }
 
       if (!newPassword) {
-        // Step 1: Just verify the email exists
-        return res.status(200).json({ exists: true });
+        // Step 1: Verify email exists and return security question
+        return res.status(200).json({
+          exists: true,
+          securityQuestion: user.securityQuestion || null,
+        });
       }
 
-      // Step 2: Set new password
+      // Step 2: Verify security answer and set new password
+      if (user.securityQuestion && user.securityAnswerHash) {
+        if (!securityAnswer) {
+          return res.status(400).json({ error: 'Security answer is required' });
+        }
+        if (hashSecurityAnswer(securityAnswer) !== user.securityAnswerHash) {
+          return res.status(403).json({ error: 'Incorrect security answer' });
+        }
+      }
+
       if (newPassword.length < 6) {
         return res.status(400).json({ error: 'Password must be at least 6 characters' });
       }

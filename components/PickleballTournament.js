@@ -64,8 +64,16 @@ const PickleballTournament = () => {
       const saved = localStorage.getItem('pickleball-tournament');
       if (saved) {
         const data = JSON.parse(saved);
-        if (data.currentView && data.currentView !== 'setup') setCurrentView(data.currentView);
-        if (data.currentView === 'setup' && data.matches && data.matches.length > 0) setCurrentView('setup');
+        if (data.currentView === 'tournament' || data.currentView === 'results' || data.currentView === 'match') {
+          // Only restore active views if matches exist
+          if (data.matches && data.matches.length > 0) {
+            setCurrentView(data.currentView);
+          } else {
+            setCurrentView('setup');
+          }
+        } else if (data.currentView && data.currentView !== 'setup') {
+          setCurrentView(data.currentView);
+        }
         if (data.tournamentType) setTournamentType(data.tournamentType);
         if (data.participantType) setParticipantType(data.participantType);
         if (data.participants) setParticipants(data.participants);
