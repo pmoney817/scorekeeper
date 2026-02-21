@@ -1343,25 +1343,143 @@ Examples:
     const winScore = Math.max(team1Score, team2Score);
     const loseScore = Math.min(team1Score, team2Score);
 
-    // Update match
-    let updatedMatches = matches.map(m => {
-      if (m.id === activeMatch.id) {
-        return {
-          ...m,
-          score1: team1Score,
-          score2: team2Score,
-          winner: winnerTeam,
-          completed: true
-        };
-      }
-      return m;
-    });
-
     // Update participant stats (handles both arrays for doubles and single for bracket)
     const winnerIds = Array.isArray(winnerTeam) ? winnerTeam.map(p => p.id) : [winnerTeam.id];
     const loserIds = Array.isArray(loserTeam) ? loserTeam.map(p => p.id) : [loserTeam.id];
 
-    const updatedParticipants = participants.map(p => {
+    // Use functional updater so we always work with latest state (avoids stale closure from setTimeout)
+    setMatches(prev => {
+      let updatedMatches = prev.map(m => {
+        if (m.id === activeMatch.id) {
+          return {
+            ...m,
+            score1: team1Score,
+            score2: team2Score,
+            winner: winnerTeam,
+            completed: true
+          };
+        }
+        return m;
+      });
+
+      // For bracket tournaments (or bracket phase of pool play), advance winner
+      const isBracketMatch = tournamentType === 'bracket' || (tournamentType === 'poolplay' && tournamentPhase === 'bracket');
+      if (isBracketMatch && activeMatch.bracketPosition !== undefined) {
+        const bracketMatches = updatedMatches.filter(m => m.phase === 'bracket' || (tournamentType === 'bracket' && !m.phase));
+        if (bracketMatches.length > 0) {
+          const maxRound = Math.max(...bracketMatches.map(m => m.round));
+          if (activeMatch.round < maxRound) {
+            const nextRoundMatch = updatedMatches.find(m =>
+              (m.phase === 'bracket' || (tournamentType === 'bracket' && !m.phase)) &&
+              m.round === activeMatch.round + 1 &&
+              Math.floor(activeMatch.bracketPosition / 2) === m.bracketPosition
+            );
+
+            if (nextRoundMatch) {
+              updatedMatches = updatedMatches.map(m => {
+                if (m.id === nextRoundMatch.id) {
+                  return {
+                    ...m,
+                    team1: m.team1 ? m.team1 : winnerTeam,
+                    team2: m.team1 ? winnerTeam : m.team2
+                  };
+                }
+                return m;
+              });
+            }
+          }
+        }
+      }
+
+      // Double elimination: advance winner + send loser to losers bracket
+      if (tournamentType === 'doubleelim' && activeMatch.bracket) {
+        const deLoserTeam = winnerTeam === activeMatch.team1 ? activeMatch.team2 : activeMatch.team1;
+        const winnersMatches = updatedMatches.filter(m => m.bracket === 'winners');
+        const losersMatches = updatedMatches.filter(m => m.bracket === 'losers');
+        const winnersMaxRound = winnersMatches.length > 0 ? Math.max(...winnersMatches.map(m => m.round)) : 0;
+        const losersMaxRound = losersMatches.length > 0 ? Math.max(...losersMatches.map(m => m.round)) : 0;
+
+        if (activeMatch.bracket === 'winners') {
+          if (activeMatch.round < winnersMaxRound) {
+            const nextWinners = updatedMatches.find(m =>
+              m.bracket === 'winners' &&
+              m.round === activeMatch.round + 1 &&
+              Math.floor(activeMatch.bracketPosition / 2) === m.bracketPosition
+            );
+            if (nextWinners) {
+              updatedMatches = updatedMatches.map(m => {
+                if (m.id === nextWinners.id) {
+                  return { ...m, team1: m.team1 ? m.team1 : winnerTeam, team2: m.team1 ? winnerTeam : m.team2 };
+                }
+                return m;
+              });
+            }
+          } else {
+            updatedMatches = updatedMatches.map(m => {
+              if (m.bracket === 'grand-final') {
+                return { ...m, team1: winnerTeam };
+              }
+              return m;
+            });
+          }
+
+          const losersDropRound = (activeMatch.round - 1) * 2 + 1;
+          const losersDropMatch = updatedMatches.find(m =>
+            m.bracket === 'losers' &&
+            m.round === losersDropRound &&
+            (!m.team1 || !m.team2)
+          );
+          if (losersDropMatch) {
+            updatedMatches = updatedMatches.map(m => {
+              if (m.id === losersDropMatch.id) {
+                return { ...m, team1: m.team1 ? m.team1 : deLoserTeam, team2: m.team1 ? deLoserTeam : m.team2 };
+              }
+              return m;
+            });
+          }
+        } else if (activeMatch.bracket === 'losers') {
+          if (activeMatch.round < losersMaxRound) {
+            const nextLosers = updatedMatches.find(m =>
+              m.bracket === 'losers' &&
+              m.round === activeMatch.round + 1 &&
+              (!m.team1 || !m.team2)
+            );
+            if (nextLosers) {
+              updatedMatches = updatedMatches.map(m => {
+                if (m.id === nextLosers.id) {
+                  return { ...m, team1: m.team1 ? m.team1 : winnerTeam, team2: m.team1 ? winnerTeam : m.team2 };
+                }
+                return m;
+              });
+            }
+          } else {
+            updatedMatches = updatedMatches.map(m => {
+              if (m.bracket === 'grand-final') {
+                return { ...m, team2: winnerTeam };
+              }
+              return m;
+            });
+          }
+        } else if (activeMatch.bracket === 'grand-final') {
+          const grandFinal = updatedMatches.find(m => m.id === 'grand-final');
+          if (grandFinal) {
+            if (winnerTeam === grandFinal.team2) {
+              updatedMatches = updatedMatches.map(m => {
+                if (m.id === 'reset-match') {
+                  return { ...m, team1: grandFinal.team1, team2: grandFinal.team2 };
+                }
+                return m;
+              });
+            }
+          }
+        }
+      }
+
+      return updatedMatches;
+    });
+
+    // Use functional updater for participants too
+    setParticipants(prev => prev.map(p => {
       if (winnerIds.includes(p.id)) {
         return { ...p, wins: p.wins + 1, points: p.points + winScore };
       }
@@ -1369,131 +1487,7 @@ Examples:
         return { ...p, losses: p.losses + 1, points: p.points + loseScore };
       }
       return p;
-    });
-
-    // For bracket tournaments (or bracket phase of pool play), advance winner
-    const isBracketMatch = tournamentType === 'bracket' || (tournamentType === 'poolplay' && tournamentPhase === 'bracket');
-    if (isBracketMatch && activeMatch.bracketPosition !== undefined) {
-      const bracketMatches = updatedMatches.filter(m => m.phase === 'bracket' || (tournamentType === 'bracket' && !m.phase));
-      if (bracketMatches.length === 0) return;
-      const maxRound = Math.max(...bracketMatches.map(m => m.round));
-      if (activeMatch.round < maxRound) {
-        const nextRoundMatch = updatedMatches.find(m =>
-          (m.phase === 'bracket' || (tournamentType === 'bracket' && !m.phase)) &&
-          m.round === activeMatch.round + 1 &&
-          Math.floor(activeMatch.bracketPosition / 2) === m.bracketPosition
-        );
-
-        if (nextRoundMatch) {
-          updatedMatches = updatedMatches.map(m => {
-            if (m.id === nextRoundMatch.id) {
-              return {
-                ...m,
-                team1: m.team1 ? m.team1 : winnerTeam,
-                team2: m.team1 ? winnerTeam : m.team2
-              };
-            }
-            return m;
-          });
-        }
-      }
-    }
-
-    // Double elimination: advance winner + send loser to losers bracket
-    if (tournamentType === 'doubleelim' && activeMatch.bracket) {
-      const loserTeam = winnerTeam === activeMatch.team1 ? activeMatch.team2 : activeMatch.team1;
-      const winnersMatches = updatedMatches.filter(m => m.bracket === 'winners');
-      const losersMatches = updatedMatches.filter(m => m.bracket === 'losers');
-      const winnersMaxRound = winnersMatches.length > 0 ? Math.max(...winnersMatches.map(m => m.round)) : 0;
-      const losersMaxRound = losersMatches.length > 0 ? Math.max(...losersMatches.map(m => m.round)) : 0;
-
-      if (activeMatch.bracket === 'winners') {
-        // Advance winner in winners bracket
-        if (activeMatch.round < winnersMaxRound) {
-          const nextWinners = updatedMatches.find(m =>
-            m.bracket === 'winners' &&
-            m.round === activeMatch.round + 1 &&
-            Math.floor(activeMatch.bracketPosition / 2) === m.bracketPosition
-          );
-          if (nextWinners) {
-            updatedMatches = updatedMatches.map(m => {
-              if (m.id === nextWinners.id) {
-                return { ...m, team1: m.team1 ? m.team1 : winnerTeam, team2: m.team1 ? winnerTeam : m.team2 };
-              }
-              return m;
-            });
-          }
-        } else {
-          // Winners bracket champion → grand final team1
-          updatedMatches = updatedMatches.map(m => {
-            if (m.bracket === 'grand-final') {
-              return { ...m, team1: winnerTeam };
-            }
-            return m;
-          });
-        }
-
-        // Send loser to losers bracket
-        // Winners round N losers drop into losers round (N-1)*2 + 1
-        const losersDropRound = (activeMatch.round - 1) * 2 + 1;
-        const losersDropMatch = updatedMatches.find(m =>
-          m.bracket === 'losers' &&
-          m.round === losersDropRound &&
-          (!m.team1 || !m.team2)
-        );
-        if (losersDropMatch) {
-          updatedMatches = updatedMatches.map(m => {
-            if (m.id === losersDropMatch.id) {
-              return { ...m, team1: m.team1 ? m.team1 : loserTeam, team2: m.team1 ? loserTeam : m.team2 };
-            }
-            return m;
-          });
-        }
-      } else if (activeMatch.bracket === 'losers') {
-        // Advance winner in losers bracket
-        if (activeMatch.round < losersMaxRound) {
-          const nextLosers = updatedMatches.find(m =>
-            m.bracket === 'losers' &&
-            m.round === activeMatch.round + 1 &&
-            (!m.team1 || !m.team2)
-          );
-          if (nextLosers) {
-            updatedMatches = updatedMatches.map(m => {
-              if (m.id === nextLosers.id) {
-                return { ...m, team1: m.team1 ? m.team1 : winnerTeam, team2: m.team1 ? winnerTeam : m.team2 };
-              }
-              return m;
-            });
-          }
-        } else {
-          // Losers bracket champion → grand final team2
-          updatedMatches = updatedMatches.map(m => {
-            if (m.bracket === 'grand-final') {
-              return { ...m, team2: winnerTeam };
-            }
-            return m;
-          });
-        }
-      } else if (activeMatch.bracket === 'grand-final') {
-        const grandFinal = updatedMatches.find(m => m.id === 'grand-final');
-        if (grandFinal) {
-          // If losers bracket champion won, activate reset match
-          if (winnerTeam === grandFinal.team2) {
-            updatedMatches = updatedMatches.map(m => {
-              if (m.id === 'reset-match') {
-                return { ...m, team1: grandFinal.team1, team2: grandFinal.team2 };
-              }
-              return m;
-            });
-          }
-          // If winners bracket champion won, tournament is over
-        }
-      }
-      // Reset match: winner is champion, no further advancement needed
-    }
-
-    setMatches(updatedMatches);
-    setParticipants(updatedParticipants);
+    }));
 
     // Double elimination: stay on tournament view
     if (tournamentType === 'doubleelim') {
@@ -1503,21 +1497,32 @@ Examples:
     }
 
     // Pool play: check if pool phase is done → advance to bracket
+    // Note: we need to check via setTimeout since setMatches is async
     if (tournamentType === 'poolplay' && tournamentPhase === 'pools') {
-      const poolMatches = updatedMatches.filter(m => m.phase === 'pool');
-      if (poolMatches.every(m => m.completed)) {
-        setCurrentMatch(null);
-        setTimeout(() => advanceToBracket(), 100);
-        return true;
-      }
+      setTimeout(() => {
+        setMatches(current => {
+          const poolMatches = current.filter(m => m.phase === 'pool');
+          if (poolMatches.every(m => m.completed)) {
+            setCurrentMatch(null);
+            setTimeout(() => advanceToBracket(), 100);
+          }
+          return current;
+        });
+      }, 0);
+      return true;
     }
 
     // Ladder: check if all session matches are done
     if (tournamentType === 'ladder') {
-      const ladderMatches = updatedMatches.filter(m => m.phase === 'ladder');
-      if (ladderMatches.every(m => m.completed)) {
-        setTournamentPhase('session-results');
-      }
+      setTimeout(() => {
+        setMatches(current => {
+          const ladderMatches = current.filter(m => m.phase === 'ladder');
+          if (ladderMatches.every(m => m.completed)) {
+            setTournamentPhase('session-results');
+          }
+          return current;
+        });
+      }, 0);
       setCurrentView('tournament');
       setCurrentMatch(null);
       return true;
@@ -1793,11 +1798,8 @@ Examples:
     }
 
     if (isComplete) {
-      // Use completeMatch to handle all advancement logic
-      // First update the match scores so completeMatch can read them
-      setMatches(prev => prev.map(m => m.id === matchId ? { ...m, score1: s1, score2: s2, completed: false, winner: null } : m));
-      // Run completion on next tick so state is updated
-      setTimeout(() => completeMatch({ ...match, score1: s1, score2: s2 }, s1, s2), 0);
+      // completeMatch uses functional updaters so it always works with latest state
+      completeMatch({ ...match, score1: s1, score2: s2 }, s1, s2);
     } else {
       // Just update scores, mark uncompleted
       setMatches(prev => prev.map(m => m.id === matchId ? { ...m, score1: s1, score2: s2, completed: false, winner: null } : m));
