@@ -47,9 +47,18 @@ export default async function handler(req, res) {
 
     // Create a challenge
     if (action === 'create') {
-      const { targetEmailHash, targetEmail, targetName, settings } = req.body;
-      if (!targetEmailHash) {
-        return res.status(400).json({ error: 'Target is required' });
+      const { targets, settings } = req.body;
+      // Support legacy single-target format
+      const { targetEmailHash, targetEmail, targetName } = req.body;
+
+      const playerTargets = targets || (targetEmailHash ? [{ emailHash: targetEmailHash, email: targetEmail, name: targetName }] : null);
+
+      if (!playerTargets || playerTargets.length === 0) {
+        return res.status(400).json({ error: 'At least one target is required' });
+      }
+
+      if (playerTargets.length !== 1 && playerTargets.length !== 3) {
+        return res.status(400).json({ error: 'Must challenge 1 or 3 friends (2 or 4 player game)' });
       }
 
       const sender = await getBlob('users', emailHash);
@@ -58,19 +67,22 @@ export default async function handler(req, res) {
       }
 
       const challengeId = crypto.randomUUID();
+      const gameType = playerTargets.length === 1 ? '1v1' : '2v2';
       const challenge = {
         id: challengeId,
         fromEmailHash: emailHash,
         fromEmail: sender.email,
         fromName: sender.name,
-        toEmailHash: targetEmailHash,
-        toEmail: targetEmail,
-        toName: targetName,
-        settings: settings || {
-          tournamentType: 'roundrobin',
-          participantType: 'individual',
-          pointsToWin: 11,
-          winByTwo: true,
+        // Keep first target in legacy fields for backwards compat
+        toEmailHash: playerTargets[0].emailHash,
+        toEmail: playerTargets[0].email,
+        toName: playerTargets[0].name,
+        // All targets array
+        targets: playerTargets,
+        gameType,
+        settings: {
+          pointsToWin: (settings && settings.pointsToWin) || 11,
+          winByTwo: settings ? settings.winByTwo : true,
         },
         status: 'pending',
         createdAt: Date.now(),
@@ -84,10 +96,12 @@ export default async function handler(req, res) {
       myIndex.unshift(challengeId);
       await putBlob('user-challenges', emailHash, myIndex);
 
-      // Add to target's challenge index
-      const targetIndex = (await getBlob('user-challenges', targetEmailHash)) || [];
-      targetIndex.unshift(challengeId);
-      await putBlob('user-challenges', targetEmailHash, targetIndex);
+      // Add to all targets' challenge indexes
+      for (const target of playerTargets) {
+        const targetIndex = (await getBlob('user-challenges', target.emailHash)) || [];
+        targetIndex.unshift(challengeId);
+        await putBlob('user-challenges', target.emailHash, targetIndex);
+      }
 
       return res.status(200).json({ challenge });
     }
@@ -104,7 +118,11 @@ export default async function handler(req, res) {
         return res.status(404).json({ error: 'Challenge not found' });
       }
 
-      if (challenge.toEmailHash !== emailHash) {
+      // Check if user is one of the targets
+      const isTarget = challenge.targets
+        ? challenge.targets.some(t => t.emailHash === emailHash)
+        : challenge.toEmailHash === emailHash;
+      if (!isTarget) {
         return res.status(403).json({ error: 'Not authorized to respond to this challenge' });
       }
 

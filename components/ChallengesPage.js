@@ -11,10 +11,8 @@ export default function ChallengesPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
-  const [selectedFriend, setSelectedFriend] = useState(null);
+  const [selectedFriends, setSelectedFriends] = useState([]);
   const [settings, setSettings] = useState({
-    tournamentType: 'roundrobin',
-    participantType: 'individual',
     pointsToWin: 11,
     winByTwo: true,
   });
@@ -63,19 +61,33 @@ export default function ChallengesPage() {
     } catch {}
   };
 
+  const toggleFriend = (f) => {
+    setSelectedFriends(prev => {
+      const exists = prev.some(s => s.emailHash === f.emailHash);
+      if (exists) return prev.filter(s => s.emailHash !== f.emailHash);
+      if (prev.length >= 3) return prev; // max 3
+      return [...prev, f];
+    });
+  };
+
+  const validSelection = selectedFriends.length === 1 || selectedFriends.length === 3;
+
   const createChallenge = async () => {
-    if (!selectedFriend) return;
+    if (!validSelection) return;
     setActionLoading('create');
     try {
+      const targets = selectedFriends.map(f => ({
+        emailHash: f.emailHash,
+        email: f.email,
+        name: f.name,
+      }));
       const res = await fetch('/api/challenges', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'create',
           email: user.email,
-          targetEmailHash: selectedFriend.emailHash,
-          targetEmail: selectedFriend.email,
-          targetName: selectedFriend.name,
+          targets,
           settings,
         }),
       });
@@ -83,7 +95,7 @@ export default function ChallengesPage() {
       if (data.challenge) {
         setChallenges(prev => [data.challenge, ...prev]);
         setShowCreate(false);
-        setSelectedFriend(null);
+        setSelectedFriends([]);
       }
     } catch (e) {
       console.error('Create challenge error:', e);
@@ -107,12 +119,19 @@ export default function ChallengesPage() {
         // If accepted, navigate to tournament with pre-populated settings
         if (accept && data.challenge.settings) {
           const s = data.challenge.settings;
+          // Build player list: sender + all targets
+          const allPlayers = [data.challenge.fromName];
+          if (data.challenge.targets) {
+            data.challenge.targets.forEach(t => allPlayers.push(t.name));
+          } else {
+            allPlayers.push(data.challenge.toName);
+          }
           const params = new URLSearchParams({
-            type: s.tournamentType || 'roundrobin',
-            participantType: s.participantType || 'individual',
+            type: 'roundrobin',
+            participantType: 'individual',
             pointsToWin: String(s.pointsToWin || 11),
             winByTwo: String(s.winByTwo !== false),
-            players: [data.challenge.fromName, data.challenge.toName].join(','),
+            players: allPlayers.join(','),
             challenge: challengeId,
           });
           router.push(`/tournament?${params.toString()}`);
@@ -178,9 +197,14 @@ export default function ChallengesPage() {
         <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-white/50 shadow-soft mb-6 animate-fade-in-up">
           <h2 className="text-lg font-semibold text-foreground mb-4">Challenge a Friend</h2>
 
-          {/* Select Friend */}
+          {/* Select Friends */}
           <div className="mb-4">
-            <label className="block text-sm font-medium text-muted-foreground mb-2">Choose a friend</label>
+            <label className="block text-sm font-medium text-muted-foreground mb-2">
+              Select friends ({selectedFriends.length === 0 ? 'pick 1 or 3' : `${selectedFriends.length} selected`})
+            </label>
+            <p className="text-xs text-muted-foreground mb-2">
+              1 friend = 1v1 game &middot; 3 friends = 2v2 game
+            </p>
             {friends.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 No friends yet.{' '}
@@ -188,54 +212,46 @@ export default function ChallengesPage() {
               </p>
             ) : (
               <div className="flex flex-wrap gap-2">
-                {friends.map(f => (
-                  <button
-                    key={f.emailHash}
-                    onClick={() => setSelectedFriend(f)}
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                      selectedFriend?.emailHash === f.emailHash
-                        ? 'bg-court text-white'
-                        : 'bg-white/70 text-foreground hover:bg-court/10 border border-white/50'
-                    }`}
-                  >
-                    {f.name}
-                  </button>
-                ))}
+                {friends.map(f => {
+                  const isSelected = selectedFriends.some(s => s.emailHash === f.emailHash);
+                  return (
+                    <button
+                      key={f.emailHash}
+                      onClick={() => toggleFriend(f)}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                        isSelected
+                          ? 'bg-court text-white'
+                          : 'bg-white/70 text-foreground hover:bg-court/10 border border-white/50'
+                      }`}
+                    >
+                      {f.name}
+                    </button>
+                  );
+                })}
               </div>
+            )}
+            {selectedFriends.length === 2 && (
+              <p className="text-xs text-orange-500 mt-2">Select 1 more friend for a 2v2 game, or remove one for a 1v1</p>
             )}
           </div>
 
           {/* Game Settings */}
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">Format</label>
-              <select
-                value={settings.tournamentType}
-                onChange={(e) => setSettings({ ...settings, tournamentType: e.target.value })}
-                className="w-full px-3 py-2 bg-white/70 border border-white/50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-court/50"
-              >
-                <option value="roundrobin">Round Robin</option>
-                <option value="bracket">Single Elimination</option>
-                <option value="doubleelim">Double Elimination</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1">Points to Win</label>
-              <select
-                value={settings.pointsToWin}
-                onChange={(e) => setSettings({ ...settings, pointsToWin: parseInt(e.target.value) })}
-                className="w-full px-3 py-2 bg-white/70 border border-white/50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-court/50"
-              >
-                <option value={11}>11</option>
-                <option value={15}>15</option>
-                <option value={21}>21</option>
-              </select>
-            </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-muted-foreground mb-1">Points to Win</label>
+            <select
+              value={settings.pointsToWin}
+              onChange={(e) => setSettings({ ...settings, pointsToWin: parseInt(e.target.value) })}
+              className="w-full px-3 py-2 bg-white/70 border border-white/50 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-court/50"
+            >
+              <option value={11}>11</option>
+              <option value={15}>15</option>
+              <option value={21}>21</option>
+            </select>
           </div>
 
           <button
             onClick={createChallenge}
-            disabled={!selectedFriend || actionLoading === 'create'}
+            disabled={!validSelection || actionLoading === 'create'}
             className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-court text-white rounded-xl font-bold hover:scale-[1.02] transition-all disabled:opacity-50 disabled:hover:scale-100"
           >
             {actionLoading === 'create' ? (
@@ -261,8 +277,28 @@ export default function ChallengesPage() {
       ) : (
         <div className="space-y-3">
           {challenges.map(c => {
-            const isReceived = c.toEmail === user.email;
+            const isReceived = c.targets
+              ? c.targets.some(t => t.email === user.email)
+              : c.toEmail === user.email;
             const isPending = c.status === 'pending';
+
+            // Build display of other players
+            const otherNames = [];
+            if (isReceived) {
+              otherNames.push(c.fromName);
+              if (c.targets) {
+                c.targets.forEach(t => { if (t.email !== user.email) otherNames.push(t.name); });
+              }
+            } else {
+              if (c.targets) {
+                c.targets.forEach(t => otherNames.push(t.name));
+              } else {
+                otherNames.push(c.toName);
+              }
+            }
+
+            const gameLabel = c.gameType === '2v2' ? '2v2' : '1v1';
+
             return (
               <div
                 key={c.id}
@@ -275,7 +311,7 @@ export default function ChallengesPage() {
                     </div>
                     <div>
                       <p className="text-sm font-semibold text-foreground">
-                        {isReceived ? c.fromName : c.toName}
+                        {otherNames.join(', ')}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {isReceived ? 'Challenged you' : 'You challenged'}
@@ -288,8 +324,7 @@ export default function ChallengesPage() {
                 </div>
 
                 <div className="text-xs text-muted-foreground mb-3">
-                  {c.settings.tournamentType === 'roundrobin' ? 'Round Robin' :
-                   c.settings.tournamentType === 'bracket' ? 'Single Elimination' : 'Double Elimination'}
+                  {gameLabel}
                   {' '}&middot;{' '}
                   {c.settings.pointsToWin} pts
                   {' '}&middot;{' '}
