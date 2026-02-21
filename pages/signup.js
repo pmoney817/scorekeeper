@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
-import { UserPlus, Eye, EyeOff } from 'lucide-react';
+import { UserPlus, Eye, EyeOff, Lock } from 'lucide-react';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -200,69 +200,68 @@ export default function SignupPage() {
       {/* Content */}
       <div className="relative z-10 min-h-screen flex flex-col">
         {/* Logo */}
-        <div className="px-4 md:px-8 pt-5 pb-4 flex justify-center animate-fade-in-up">
+        <div className="px-4 md:px-8 pt-5 pb-2 flex justify-center animate-fade-in-up">
           <Link href="/">
-            <img src="/pickleball-vibes-logo.png" alt="Pickleball Vibes" className="h-48 w-48 md:h-64 md:w-64 object-contain drop-shadow-md cursor-pointer hover:scale-105 transition-transform duration-300" />
+            <img src="/pickleball-vibes-logo.png" alt="Pickleball Vibes" className="h-36 w-36 md:h-48 md:w-48 object-contain drop-shadow-md cursor-pointer hover:scale-105 transition-transform duration-300" />
           </Link>
         </div>
 
+        {/* Heading outside card */}
+        <div className="text-center mb-4 animate-fade-in-up" style={{ animationDelay: '0.05s' }}>
+          <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-1">
+            Join <span className="text-gradient-court">Pickleball Vibes</span>
+          </h1>
+          <p className="text-muted-foreground font-body text-base">
+            Create your account and start playing
+          </p>
+        </div>
+
         {/* Main content */}
-        <div className="flex-1 flex items-center justify-center px-4 md:px-8 py-8">
-          <div className="w-full max-w-md animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-            <div className="relative bg-white/70 backdrop-blur-md rounded-3xl shadow-elevated p-8 md:p-10 border border-white/50 overflow-hidden">
-              {/* Background accent */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-sunny opacity-10 rounded-full -translate-y-1/2 translate-x-1/2" />
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-court opacity-5 rounded-full translate-y-1/2 -translate-x-1/2" />
+        <div className="flex-1 flex items-start justify-center px-4 md:px-8 py-4 pb-8">
+          <div className="w-full max-w-2xl animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
 
-              {/* Icon */}
-              <div className="flex justify-center mb-6">
-                <div className="bg-gradient-court p-3.5 rounded-2xl shadow-soft">
-                  <UserPlus className="w-6 h-6 text-white" />
-                </div>
+            {/* Error message */}
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-body mb-4">
+                {error}
               </div>
+            )}
 
-              {/* Heading */}
-              <h1 className="text-2xl md:text-3xl font-display font-bold text-center text-foreground mb-2">
-                Create Account
-              </h1>
-              <p className="text-center text-muted-foreground font-body text-sm mb-8">
-                Join the pickleball community
-              </p>
-
-              {/* Error message */}
-              {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-body mb-4">
-                  {error}
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Section 1: Account Info */}
+              <div className="relative bg-white/70 backdrop-blur-md rounded-2xl shadow-elevated p-6 md:p-8 border border-white/50 overflow-hidden">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-court opacity-5 rounded-full -translate-y-1/2 translate-x-1/2" />
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="bg-gradient-court p-2.5 rounded-xl shadow-soft">
+                    <UserPlus className="w-5 h-5 text-white" />
+                  </div>
+                  <h2 className="text-lg font-display font-bold text-foreground">Account Info</h2>
                 </div>
-              )}
-
-              {/* Form */}
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Name</label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Your name"
-                    required
-                    className={inputClass}
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Name</label>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Your name"
+                      required
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Email</label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      required
+                      className={inputClass}
+                    />
+                  </div>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Email</label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    required
-                    className={inputClass}
-                  />
-                </div>
-
-                <div>
+                <div className="mt-4">
                   <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Date of Birth</label>
                   <div className="grid grid-cols-3 gap-2">
                     <select
@@ -297,152 +296,173 @@ export default function SignupPage() {
                     </select>
                   </div>
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Skill Level</label>
-                  <select
-                    value={level}
-                    onChange={(e) => setLevel(e.target.value)}
-                    required
-                    className={selectClass}
-                  >
-                    <option value="" disabled>Select your level</option>
-                    <option value="beginner">Beginner</option>
-                    <option value="intermediate">Intermediate</option>
-                    <option value="advanced">Advanced</option>
-                  </select>
+              {/* Section 2: Player Profile */}
+              <div className="relative bg-white/70 backdrop-blur-md rounded-2xl shadow-elevated p-6 md:p-8 border border-white/50 overflow-hidden">
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-sunny opacity-8 rounded-full translate-y-1/2 -translate-x-1/2" />
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="bg-gradient-sunny p-2.5 rounded-xl shadow-soft">
+                    <span className="text-foreground text-lg">&#127955;</span>
+                  </div>
+                  <h2 className="text-lg font-display font-bold text-foreground">Player Profile</h2>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">
-                    DUPR Rating <span className="font-normal text-muted-foreground">(optional)</span>
-                  </label>
-                  <input
-                    type="number"
-                    step="0.001"
-                    min="2.000"
-                    max="8.000"
-                    value={duprRating}
-                    onChange={(e) => setDuprRating(e.target.value)}
-                    placeholder="e.g. 3.500"
-                    className={inputClass}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">How often do you play?</label>
-                  <select
-                    value={timesPerWeek}
-                    onChange={(e) => setTimesPerWeek(e.target.value)}
-                    required
-                    className={selectClass}
-                  >
-                    <option value="" disabled>Times per week</option>
-                    <option value="1">1 time per week</option>
-                    <option value="2">2 times per week</option>
-                    <option value="3">3 times per week</option>
-                    <option value="4">4 times per week</option>
-                    <option value="5+">5+ times per week</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">How long have you been playing?</label>
-                  <select
-                    value={yearsPlaying}
-                    onChange={(e) => setYearsPlaying(e.target.value)}
-                    required
-                    className={selectClass}
-                  >
-                    <option value="" disabled>Select experience</option>
-                    <option value="less-than-6-months">Less than 6 months</option>
-                    <option value="6-months-to-1-year">6 months - 1 year</option>
-                    <option value="1-2-years">1 - 2 years</option>
-                    <option value="2-5-years">2 - 5 years</option>
-                    <option value="5-plus-years">5+ years</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Security Question</label>
-                  <select
-                    value={securityQuestion}
-                    onChange={(e) => setSecurityQuestion(e.target.value)}
-                    required
-                    className={selectClass}
-                  >
-                    <option value="" disabled>Select a security question</option>
-                    <option value="What city were you born in?">What city were you born in?</option>
-                    <option value="What is the name of your first pet?">What is the name of your first pet?</option>
-                    <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
-                    <option value="What was the name of your first school?">What was the name of your first school?</option>
-                    <option value="What is your favorite sports team?">What is your favorite sports team?</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Security Answer</label>
-                  <input
-                    type="text"
-                    value={securityAnswer}
-                    onChange={(e) => setSecurityAnswer(e.target.value)}
-                    placeholder="Your answer"
-                    required
-                    className={inputClass}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">Used to verify your identity when resetting your password</p>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Password</label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="At least 6 characters"
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Skill Level</label>
+                    <select
+                      value={level}
+                      onChange={(e) => setLevel(e.target.value)}
                       required
-                      className={`${inputClass} pr-12`}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                      className={selectClass}
                     >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                    </button>
+                      <option value="" disabled>Select your level</option>
+                      <option value="beginner">Beginner</option>
+                      <option value="intermediate">Intermediate</option>
+                      <option value="advanced">Advanced</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">
+                      DUPR Rating <span className="font-normal text-muted-foreground">(optional)</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.001"
+                      min="2.000"
+                      max="8.000"
+                      value={duprRating}
+                      onChange={(e) => setDuprRating(e.target.value)}
+                      placeholder="e.g. 3.500"
+                      className={inputClass}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">How often do you play?</label>
+                    <select
+                      value={timesPerWeek}
+                      onChange={(e) => setTimesPerWeek(e.target.value)}
+                      required
+                      className={selectClass}
+                    >
+                      <option value="" disabled>Times per week</option>
+                      <option value="1">1 time per week</option>
+                      <option value="2">2 times per week</option>
+                      <option value="3">3 times per week</option>
+                      <option value="4">4 times per week</option>
+                      <option value="5+">5+ times per week</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">How long have you played?</label>
+                    <select
+                      value={yearsPlaying}
+                      onChange={(e) => setYearsPlaying(e.target.value)}
+                      required
+                      className={selectClass}
+                    >
+                      <option value="" disabled>Select experience</option>
+                      <option value="less-than-6-months">Less than 6 months</option>
+                      <option value="6-months-to-1-year">6 months - 1 year</option>
+                      <option value="1-2-years">1 - 2 years</option>
+                      <option value="2-5-years">2 - 5 years</option>
+                      <option value="5-plus-years">5+ years</option>
+                    </select>
                   </div>
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Confirm Password</label>
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm your password"
-                    required
-                    className={inputClass}
-                  />
+              {/* Section 3: Security */}
+              <div className="relative bg-white/70 backdrop-blur-md rounded-2xl shadow-elevated p-6 md:p-8 border border-white/50 overflow-hidden">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-court opacity-5 rounded-full -translate-y-1/2 translate-x-1/2" />
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="bg-gradient-court p-2.5 rounded-xl shadow-soft">
+                    <Lock className="w-5 h-5 text-white" />
+                  </div>
+                  <h2 className="text-lg font-display font-bold text-foreground">Security</h2>
                 </div>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Password</label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="At least 6 characters"
+                          required
+                          className={`${inputClass} pr-12`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                        </button>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Confirm Password</label>
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Confirm your password"
+                        required
+                        className={inputClass}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Security Question</label>
+                    <select
+                      value={securityQuestion}
+                      onChange={(e) => setSecurityQuestion(e.target.value)}
+                      required
+                      className={selectClass}
+                    >
+                      <option value="" disabled>Select a security question</option>
+                      <option value="What city were you born in?">What city were you born in?</option>
+                      <option value="What is the name of your first pet?">What is the name of your first pet?</option>
+                      <option value="What is your mother's maiden name?">What is your mother's maiden name?</option>
+                      <option value="What was the name of your first school?">What was the name of your first school?</option>
+                      <option value="What is your favorite sports team?">What is your favorite sports team?</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Security Answer</label>
+                    <input
+                      type="text"
+                      value={securityAnswer}
+                      onChange={(e) => setSecurityAnswer(e.target.value)}
+                      placeholder="Your answer"
+                      required
+                      className={inputClass}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Used to verify your identity when resetting your password</p>
+                  </div>
+                </div>
+              </div>
 
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-gradient-court text-white py-3.5 rounded-xl font-bold shadow-soft hover:shadow-elevated hover:scale-[1.02] transition-all duration-300 text-lg disabled:opacity-50 disabled:hover:scale-100"
-                >
-                  {loading ? 'Creating Account...' : 'Sign Up'}
-                </button>
-              </form>
+              {/* Submit */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-gradient-court text-white py-4 rounded-2xl font-bold shadow-elevated hover:shadow-elevated hover:scale-[1.02] transition-all duration-300 text-lg disabled:opacity-50 disabled:hover:scale-100"
+              >
+                {loading ? 'Creating Account...' : 'Create Account'}
+              </button>
+            </form>
 
-              {/* Login link */}
-              <p className="text-center text-muted-foreground font-body text-sm mt-6">
-                Already have an account?{' '}
-                <Link href="/login">
-                  <span className="text-court font-semibold hover:underline cursor-pointer">Log In</span>
-                </Link>
-              </p>
-            </div>
+            {/* Login link */}
+            <p className="text-center text-muted-foreground font-body text-sm mt-5">
+              Already have an account?{' '}
+              <Link href="/login">
+                <span className="text-court font-semibold hover:underline cursor-pointer">Log In</span>
+              </Link>
+            </p>
           </div>
         </div>
 
