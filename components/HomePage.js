@@ -144,7 +144,7 @@ export default function HomePage() {
       {/* Content */}
       <div className="relative z-10 min-h-screen flex flex-col">
         {/* Top bar: Menu + Login/Logout */}
-        <div className="px-4 md:px-8 pt-5 pb-4 animate-fade-in-up">
+        <div className="px-4 md:px-8 pt-5 pb-4 animate-fade-in-up relative z-50">
           <div className="flex items-center justify-between">
             {/* Menu */}
             <div ref={menuRef} className="relative z-20">
@@ -157,40 +157,30 @@ export default function HomePage() {
 
               {menuOpen && (
                 <div className="absolute top-14 left-0 bg-white/90 backdrop-blur-md rounded-2xl shadow-elevated border border-white/40 py-2 min-w-[200px] animate-scale-in">
-                  <Link href="/tournament" onClick={() => setMenuOpen(false)}>
-                    <div className="flex items-center gap-3 px-5 py-3 hover:bg-court/10 transition-colors cursor-pointer">
-                      <Trophy className="w-5 h-5 text-court" />
-                      <span className="font-semibold text-foreground text-sm">Create Game</span>
+                  <div onClick={() => { setMenuOpen(false); router.push('/tournament'); }} className="flex items-center gap-3 px-5 py-3 hover:bg-court/10 transition-colors cursor-pointer">
+                    <Trophy className="w-5 h-5 text-court" />
+                    <span className="font-semibold text-foreground text-sm">Create Game</span>
+                  </div>
+                  <div onClick={() => { setMenuOpen(false); router.push('/affirmations'); }} className="flex items-center gap-3 px-5 py-3 hover:bg-ball/10 transition-colors cursor-pointer">
+                    <Sparkles className="w-5 h-5 text-ball" />
+                    <span className="font-semibold text-foreground text-sm">Vibes</span>
+                  </div>
+                  <div onClick={() => { setMenuOpen(false); router.push('/drills'); }} className="flex items-center gap-3 px-5 py-3 hover:bg-court/10 transition-colors cursor-pointer">
+                    <Target className="w-5 h-5 text-court" />
+                    <span className="font-semibold text-foreground text-sm">Practice Drills</span>
+                  </div>
+                  <div onClick={() => { setMenuOpen(false); router.push('/friends'); }} className="flex items-center gap-3 px-5 py-3 hover:bg-court/10 transition-colors cursor-pointer relative">
+                    <div className="relative">
+                      <Users className="w-5 h-5 text-court" />
+                      <FriendRequestBadge />
                     </div>
-                  </Link>
-                  <Link href="/affirmations" onClick={() => setMenuOpen(false)}>
-                    <div className="flex items-center gap-3 px-5 py-3 hover:bg-ball/10 transition-colors cursor-pointer">
-                      <Sparkles className="w-5 h-5 text-ball" />
-                      <span className="font-semibold text-foreground text-sm">Vibes</span>
-                    </div>
-                  </Link>
-                  <Link href="/drills" onClick={() => setMenuOpen(false)}>
-                    <div className="flex items-center gap-3 px-5 py-3 hover:bg-court/10 transition-colors cursor-pointer">
-                      <Target className="w-5 h-5 text-court" />
-                      <span className="font-semibold text-foreground text-sm">Practice Drills</span>
-                    </div>
-                  </Link>
-                  <Link href="/friends" onClick={() => setMenuOpen(false)}>
-                    <div className="flex items-center gap-3 px-5 py-3 hover:bg-court/10 transition-colors cursor-pointer relative">
-                      <div className="relative">
-                        <Users className="w-5 h-5 text-court" />
-                        <FriendRequestBadge />
-                      </div>
-                      <span className="font-semibold text-foreground text-sm">Friends</span>
-                    </div>
-                  </Link>
+                    <span className="font-semibold text-foreground text-sm">Friends</span>
+                  </div>
                   {user && (
-                    <Link href="/settings" onClick={() => setMenuOpen(false)}>
-                      <div className="flex items-center gap-3 px-5 py-3 hover:bg-court/10 transition-colors cursor-pointer">
-                        <Settings className="w-5 h-5 text-court" />
-                        <span className="font-semibold text-foreground text-sm">Settings</span>
-                      </div>
-                    </Link>
+                    <div onClick={() => { setMenuOpen(false); router.push('/settings'); }} className="flex items-center gap-3 px-5 py-3 hover:bg-court/10 transition-colors cursor-pointer">
+                      <Settings className="w-5 h-5 text-court" />
+                      <span className="font-semibold text-foreground text-sm">Settings</span>
+                    </div>
                   )}
                 </div>
               )}

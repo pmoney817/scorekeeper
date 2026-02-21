@@ -1778,8 +1778,15 @@ Examples:
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 bg-gray-50 min-h-screen">
-      <div className="bg-white rounded-lg shadow-lg p-6">
+    <div className="min-h-screen bg-background relative overflow-hidden">
+      {/* Background gradient matching home page */}
+      <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 bg-gradient-to-br from-court/10 via-background to-ball/10" />
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-court/8 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-ball/10 rounded-full blur-3xl" />
+      </div>
+      <div className="relative z-10 max-w-6xl mx-auto p-6">
+        <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-lg p-6">
         
         {/* Header */}
         <div className="flex justify-between items-center mb-6">
@@ -3462,6 +3469,7 @@ Examples:
             </div>
           </div>
         )}
+        </div>
       </div>
 
       {showInviteModal && (
