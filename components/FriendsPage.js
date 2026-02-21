@@ -138,7 +138,17 @@ export default function FriendsPage() {
           }]);
         }
         if (data.status === 'auto-accepted') {
-          loadFriends(user.email);
+          // Optimistically add friend to local state
+          setFriends(prev => {
+            if (prev.some(f => f.emailHash === target.emailHash)) return prev;
+            return [...prev, {
+              emailHash: target.emailHash,
+              email: target.email,
+              name: target.name,
+              addedAt: Date.now(),
+              status: 'accepted',
+            }];
+          });
           loadRequests(user.email);
         }
       }
@@ -152,13 +162,29 @@ export default function FriendsPage() {
   const respondToRequest = async (fromEmailHash, accept) => {
     setActionLoading(fromEmailHash);
     try {
-      await fetch('/api/friends', {
+      const res = await fetch('/api/friends', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'respond-request', email: user.email, fromEmailHash, accept }),
       });
+      const data = await res.json();
+      if (res.ok && accept && data.status === 'accepted') {
+        // Optimistically add friend to local state (CDN may serve stale data on reload)
+        const acceptedReq = requests.find(r => r.fromEmailHash === fromEmailHash);
+        if (acceptedReq) {
+          setFriends(prev => {
+            if (prev.some(f => f.emailHash === fromEmailHash)) return prev;
+            return [...prev, {
+              emailHash: fromEmailHash,
+              email: acceptedReq.fromEmail,
+              name: acceptedReq.fromName,
+              addedAt: Date.now(),
+              status: 'accepted',
+            }];
+          });
+        }
+      }
       setRequests(prev => prev.filter(r => r.fromEmailHash !== fromEmailHash));
-      if (accept) loadFriends(user.email);
     } catch (e) {
       console.error('Respond error:', e);
     } finally {
