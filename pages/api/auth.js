@@ -42,6 +42,7 @@ async function putUser(emailHash, data) {
   await put(blobPath(emailHash), JSON.stringify(data), {
     access: 'public',
     addRandomSuffix: false,
+    allowOverwrite: true,
   });
 }
 

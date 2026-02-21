@@ -32,6 +32,7 @@ async function putGame(code, data) {
   await put(blobPath(code), JSON.stringify(data), {
     access: 'public',
     addRandomSuffix: false,
+    allowOverwrite: true,
   });
 }
 

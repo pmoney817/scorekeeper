@@ -26,6 +26,7 @@ async function putBlob(type, key, data) {
   await put(blobPath(type, key), JSON.stringify(data), {
     access: 'public',
     addRandomSuffix: false,
+    allowOverwrite: true,
   });
 }
 

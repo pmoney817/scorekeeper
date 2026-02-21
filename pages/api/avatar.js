@@ -28,6 +28,7 @@ async function putBlob(type, key, data) {
   await put(`${type}/${key}.json`, JSON.stringify(data), {
     access: 'public',
     addRandomSuffix: false,
+    allowOverwrite: true,
   });
 }
 
@@ -145,6 +146,7 @@ export default async function handler(req, res) {
     const blob = await put(`avatars/${emailHash}.${ext}`, filePart.data, {
       access: 'public',
       addRandomSuffix: false,
+      allowOverwrite: true,
       contentType: filePart.contentType,
     });
 
