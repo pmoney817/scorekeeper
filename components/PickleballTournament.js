@@ -3396,22 +3396,6 @@ Examples:
               )}
             </div>
 
-            {/* View Final Rankings Button — shown for all formats when all matches are done */}
-            {matches.length > 0 &&
-             tournamentType !== 'ladder' &&
-             !(tournamentType === 'poolplay' && tournamentPhase === 'pools') &&
-             matches.filter(m => !m.isReset || (m.team1 && m.team2)).every(m => m.completed) && (
-              <div className="text-center mt-4">
-                <button
-                  onClick={() => setCurrentView('results')}
-                  className="bg-yellow-500 hover:bg-yellow-600 text-white px-6 py-3 rounded-lg text-lg font-semibold flex items-center gap-2 mx-auto transition-colors"
-                >
-                  <Trophy size={20} />
-                  View Final Rankings
-                </button>
-              </div>
-            )}
-
             {/* Standings for Round Robin */}
             {tournamentType === 'roundrobin' && (
               <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/40 shadow-soft">
