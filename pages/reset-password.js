@@ -108,7 +108,7 @@ export default function ResetPasswordPage() {
       {/* Content */}
       <div className="relative z-10 min-h-screen flex flex-col">
         {/* Header */}
-        <div className="px-4 md:px-8 pt-5 pb-4">
+        <div className="px-4 md:px-8 pt-5 pb-4 flex justify-center">
           <Link href="/">
             <img src="/pickleball-vibes-logo.png" alt="Pickleball Vibes" className="h-64 w-64 md:h-80 md:w-80 object-contain drop-shadow-md cursor-pointer hover:scale-105 transition-transform duration-300" />
           </Link>
