@@ -48,6 +48,7 @@ const PickleballTournament = () => {
   const [viewingSavedGame, setViewingSavedGame] = useState(null);
   const [editingParticipant, setEditingParticipant] = useState(null);
   const [playerRoster, setPlayerRoster] = useState([]);
+  const [friends, setFriends] = useState([]);
 
   const [hydrated, setHydrated] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -97,6 +98,19 @@ const PickleballTournament = () => {
         if (roster) setPlayerRoster(JSON.parse(roster));
       } catch (e) {
         console.error('Failed to restore player roster:', e);
+      }
+      try {
+        const stored = localStorage.getItem('pickleball-user');
+        if (stored) {
+          const u = JSON.parse(stored);
+          fetch('/api/friends', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'list', email: u.email }),
+          }).then(r => r.json()).then(d => { if (d.friends) setFriends(d.friends); }).catch(() => {});
+        }
+      } catch (e) {
+        // ignore friends load failure
       }
     } catch (e) {
       console.error('Failed to restore tournament state:', e);
@@ -409,6 +423,23 @@ Examples:
       points: 0
     };
     setParticipants(prev => [...prev, participant]);
+  };
+
+  // Add friend as participant
+  const addFriendAsParticipant = (friend) => {
+    const alreadyIn = participants.some(p => p.name.toLowerCase() === friend.name.toLowerCase());
+    if (alreadyIn) return;
+    const participant = {
+      id: crypto.randomUUID(),
+      type: participantType,
+      name: friend.name,
+      partner: null,
+      wins: 0,
+      losses: 0,
+      points: 0,
+    };
+    setParticipants(prev => [...prev, participant]);
+    saveToRoster(friend.name, null, participantType);
   };
 
   // Remove player from roster
@@ -2506,6 +2537,30 @@ Examples:
                   Add
                 </button>
               </div>
+
+              {/* Friends — quick-add from friends list */}
+              {friends.length > 0 && (() => {
+                const available = friends.filter(f => !participants.some(p => p.name.toLowerCase() === f.name.toLowerCase()));
+                return available.length > 0 ? (
+                  <div className="mt-4">
+                    <h3 className="text-sm font-semibold text-gray-500 mb-2 flex items-center gap-1">
+                      <Users size={14} />
+                      Friends
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {available.map(f => (
+                        <button
+                          key={f.emailHash || f.email}
+                          onClick={() => addFriendAsParticipant(f)}
+                          className="px-3 py-1.5 rounded-full text-sm font-medium bg-green-50 text-green-700 hover:bg-green-100 cursor-pointer transition-colors"
+                        >
+                          + {f.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+              })()}
 
               {/* Player Roster — pick from previously used players */}
               {playerRoster.filter(r => r.type === participantType).length > 0 && (
