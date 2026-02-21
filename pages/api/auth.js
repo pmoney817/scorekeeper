@@ -196,6 +196,7 @@ export default async function handler(req, res) {
         `user-challenges/${emailHash}`,
         `user-invites/${emailHash}`,
         `avatars/${emailHash}`,
+        `saved-games/${emailHash}`,
       ];
 
       for (const prefix of prefixes) {

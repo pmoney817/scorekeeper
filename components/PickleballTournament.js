@@ -89,8 +89,24 @@ const PickleballTournament = () => {
         if (data.tournamentName) setTournamentName(data.tournamentName);
       }
       try {
+        // Load from localStorage first as fallback
         const games = localStorage.getItem('pickleball-saved-games');
         if (games) setSavedGames(JSON.parse(games));
+        // Then fetch from server for logged-in users (overrides localStorage)
+        const stored = localStorage.getItem('pickleball-user');
+        if (stored) {
+          const u = JSON.parse(stored);
+          fetch('/api/saved-games', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'list', email: u.email }),
+          }).then(r => r.json()).then(d => {
+            if (d.games && d.games.length > 0) {
+              setSavedGames(d.games);
+              localStorage.setItem('pickleball-saved-games', JSON.stringify(d.games));
+            }
+          }).catch(() => {});
+        }
       } catch (e) {
         console.error('Failed to restore saved games:', e);
       }
@@ -1599,11 +1615,24 @@ Examples:
     setSavedGames(updated);
     localStorage.setItem('pickleball-saved-games', JSON.stringify(updated));
 
-    // Publish activity event (fire-and-forget)
+    // Save server-side for all participants who have accounts (fire-and-forget)
     try {
       const stored = localStorage.getItem('pickleball-user');
       if (stored) {
         const u = JSON.parse(stored);
+        const participantNames = participants.map(p => p.name);
+        fetch('/api/saved-games', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'save',
+            email: u.email,
+            game,
+            participantNames,
+          }),
+        }).catch(() => {});
+
+        // Publish activity event
         const standings = game.standings || [];
         const winner = standings.length > 0 ? standings[0].name : null;
         fetch('/api/activity', {
@@ -1688,6 +1717,18 @@ Examples:
     if (viewingSavedGame && viewingSavedGame.id === gameId) {
       setViewingSavedGame(null);
     }
+    // Also delete from server
+    try {
+      const stored = localStorage.getItem('pickleball-user');
+      if (stored) {
+        const u = JSON.parse(stored);
+        fetch('/api/saved-games', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'delete', email: u.email, gameId: gameId.toString() }),
+        }).catch(() => {});
+      }
+    } catch {}
   };
 
   const getDisplayName = (participant) => {
