@@ -56,6 +56,7 @@ const PickleballTournament = () => {
   const [shareCode, setShareCode] = useState(null);
   const [shareUrl, setShareUrl] = useState('');
   const [isSharing, setIsSharing] = useState(false);
+  const [activeRoundTab, setActiveRoundTab] = useState(1);
 
   const router = useRouter();
 
@@ -225,6 +226,23 @@ const PickleballTournament = () => {
   useEffect(() => {
     return () => { abortControllerRef.current?.abort(); };
   }, []);
+
+  // Auto-advance to next round when current round is complete (round robin only)
+  useEffect(() => {
+    if (tournamentType !== 'roundrobin' || currentView !== 'tournament' || typeof activeRoundTab !== 'number') return;
+    const roundMatches = matches.filter(m => m.round === activeRoundTab);
+    if (roundMatches.length > 0 && roundMatches.every(m => m.completed)) {
+      const allRounds = [...new Set(matches.map(m => m.round))].sort((a, b) => a - b);
+      const currentIdx = allRounds.indexOf(activeRoundTab);
+      if (currentIdx < allRounds.length - 1) {
+        const nextRound = allRounds[currentIdx + 1];
+        const nextRoundMatches = matches.filter(m => m.round === nextRound);
+        if (!nextRoundMatches.every(m => m.completed)) {
+          setTimeout(() => setActiveRoundTab(nextRound), 500);
+        }
+      }
+    }
+  }, [matches, activeRoundTab, tournamentType, currentView]);
 
   const processAISetup = async (userMessage) => {
     abortControllerRef.current?.abort();
@@ -569,6 +587,7 @@ Examples:
       }
 
       setMatches(allMatches);
+      setActiveRoundTab(1);
       setCurrentView('tournament');
     } else {
       // Individual round robin (doubles mixer)
@@ -646,6 +665,7 @@ Examples:
       }
 
       setMatches(allMatches);
+      setActiveRoundTab(1);
       setCurrentView('tournament');
     }
   };
@@ -1656,6 +1676,7 @@ Examples:
     setUserInput('');
     setTournamentName('');
     setAutoSaved(false);
+    setActiveRoundTab(1);
     setCurrentView('format-select');
     localStorage.removeItem('pickleball-tournament');
   };
@@ -1835,14 +1856,16 @@ Examples:
 
             {currentView !== 'setup' && currentView !== 'ai-setup' && currentView !== 'format-select' && (
               <div className="flex gap-2">
-                <button
-                  onClick={shareGame}
-                  disabled={isSharing}
-                  className="bg-gradient-court hover:shadow-elevated text-white px-4 py-2 rounded-xl shadow-soft flex items-center gap-2 transition-all duration-300 font-semibold disabled:opacity-50"
-                >
-                  {isSharing ? <Loader2Icon size={16} className="animate-spin" /> : <Share2 size={16} />}
-                  Share
-                </button>
+                {currentView !== 'results' && (
+                  <button
+                    onClick={shareGame}
+                    disabled={isSharing}
+                    className="bg-gradient-court hover:shadow-elevated text-white px-4 py-2 rounded-xl shadow-soft flex items-center gap-2 transition-all duration-300 font-semibold disabled:opacity-50"
+                  >
+                    {isSharing ? <Loader2Icon size={16} className="animate-spin" /> : <Share2 size={16} />}
+                    Share
+                  </button>
+                )}
                 <button
                   onClick={() => resetTournament()}
                   className="bg-white/70 backdrop-blur-md hover:bg-white/90 text-foreground px-4 py-2 rounded-xl shadow-soft border border-white/40 flex items-center gap-2 transition-all duration-300 font-semibold"
@@ -3024,45 +3047,134 @@ Examples:
                   })
                 )
               ) : tournamentType === 'roundrobin' ? (
-                // Round Robin matches grouped by round
-                Object.entries(
-                  matches.reduce((acc, match) => {
+                // Round Robin with tabbed rounds
+                (() => {
+                  const roundsMap = matches.reduce((acc, match) => {
                     if (!acc[match.round]) acc[match.round] = [];
                     acc[match.round].push(match);
                     return acc;
-                  }, {})
-                ).map(([round, roundMatches]) => (
-                  <div key={round} className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 border border-white/40">
-                    <h3 className="text-lg font-semibold mb-3">Round {round}</h3>
-                    <div className="grid gap-3">
-                      {roundMatches.map((match) => (
-                        <div key={match.id} className={`p-4 rounded-lg border-2 ${
-                          match.completed ? 'bg-court/10 border-court/30' : 'bg-white/70 border-white/40'
-                        }`}>
-                          {match.court && roundMatches.length > 1 && (
-                            <div className="text-xs font-semibold text-purple-600 mb-2">Court {match.court}</div>
-                          )}
-                          <div className="flex justify-between items-center">
-                            <div className="flex-1">
-                              <div className="flex justify-between items-center mb-2">
-                                <span className="font-medium">{getDisplayName(match.team1)}</span>
-                                {renderScoreInput(match, 'score1')}
-                              </div>
-                              <div className="text-muted-foreground text-sm mb-2">vs</div>
-                              <div className="flex justify-between items-center">
-                                <span className="font-medium">{getDisplayName(match.team2)}</span>
-                                {renderScoreInput(match, 'score2')}
-                              </div>
-                            </div>
-                            <div className="ml-3">
-                              {renderMatchAction(match)}
-                            </div>
+                  }, {});
+                  const roundNumbers = Object.keys(roundsMap).map(Number).sort((a, b) => a - b);
+                  const currentRoundMatches = roundsMap[activeRoundTab] || [];
+                  return (
+                    <>
+                      {/* Round tabs */}
+                      <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-hide">
+                        {roundNumbers.map(round => {
+                          const allDone = roundsMap[round].every(m => m.completed);
+                          return (
+                            <button
+                              key={round}
+                              onClick={() => setActiveRoundTab(round)}
+                              className={`px-4 py-2 rounded-xl font-semibold text-sm whitespace-nowrap transition-all duration-300 ${
+                                activeRoundTab === round
+                                  ? 'bg-gradient-court text-white shadow-soft'
+                                  : allDone
+                                  ? 'bg-court/15 text-court border border-court/20'
+                                  : 'bg-white/50 text-foreground border border-white/40 hover:bg-white/70'
+                              }`}
+                            >
+                              Round {round}
+                              {allDone && activeRoundTab !== round && ' ✓'}
+                            </button>
+                          );
+                        })}
+                        <button
+                          onClick={() => setActiveRoundTab('standings')}
+                          className={`px-4 py-2 rounded-xl font-semibold text-sm whitespace-nowrap transition-all duration-300 ${
+                            activeRoundTab === 'standings'
+                              ? 'bg-gradient-sunny text-foreground shadow-soft'
+                              : 'bg-white/50 text-foreground border border-white/40 hover:bg-white/70'
+                          }`}
+                        >
+                          Standings
+                        </button>
+                      </div>
+
+                      {/* Round content */}
+                      {activeRoundTab === 'standings' ? (
+                        <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/40 shadow-soft overflow-hidden">
+                          <h3 className="text-lg font-display font-bold p-4 border-b border-white/40 text-foreground flex items-center gap-2">
+                            <Trophy className="text-ball" size={18} />
+                            Live Standings
+                          </h3>
+                          <div className="overflow-x-auto">
+                            <table className="w-full">
+                              <thead className="bg-court/5">
+                                <tr>
+                                  <th className="px-3 py-2.5 text-left text-sm font-semibold text-foreground">Rank</th>
+                                  <th className="px-3 py-2.5 text-left text-sm font-semibold text-foreground">{participantType === 'team' ? 'Team' : 'Player'}</th>
+                                  <th className="px-3 py-2.5 text-center text-sm font-semibold text-foreground">W</th>
+                                  <th className="px-3 py-2.5 text-center text-sm font-semibold text-foreground">L</th>
+                                  <th className="px-3 py-2.5 text-center text-sm font-semibold text-foreground">Win %</th>
+                                  <th className="px-3 py-2.5 text-center text-sm font-semibold text-foreground">Pts</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {getStandings().map((p, index) => (
+                                  <tr key={p.id || index} className={
+                                    index === 0 ? 'bg-ball/10 font-semibold' :
+                                    index === 1 ? 'bg-court/5' :
+                                    index === 2 ? 'bg-ball/5' :
+                                    'hover:bg-court/5'
+                                  }>
+                                    <td className="px-3 py-2.5 text-sm text-foreground">
+                                      <div className="flex items-center gap-1">
+                                        {index === 0 && <Crown className="text-ball" size={14} />}
+                                        #{index + 1}
+                                      </div>
+                                    </td>
+                                    <td className="px-3 py-2.5 text-sm text-foreground">{getDisplayName(p)}</td>
+                                    <td className="px-3 py-2.5 text-center text-sm text-foreground">{p.wins}</td>
+                                    <td className="px-3 py-2.5 text-center text-sm text-foreground">{p.losses}</td>
+                                    <td className="px-3 py-2.5 text-center text-sm text-foreground">{p.winPercentage?.toFixed(1) || '0.0'}%</td>
+                                    <td className="px-3 py-2.5 text-center text-sm text-foreground">{p.points}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  </div>
-                ))
+                      ) : (
+                        <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 border border-white/40">
+                          <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-lg font-display font-bold text-foreground">Round {activeRoundTab}</h3>
+                            <span className="text-sm text-muted-foreground font-body">
+                              {currentRoundMatches.filter(m => m.completed).length} of {currentRoundMatches.length} completed
+                            </span>
+                          </div>
+                          <div className="grid gap-3">
+                            {currentRoundMatches.map((match) => (
+                              <div key={match.id} className={`p-4 rounded-xl border-2 ${
+                                match.completed ? 'bg-court/10 border-court/30' : 'bg-white/70 border-white/40'
+                              }`}>
+                                {match.court && currentRoundMatches.length > 1 && (
+                                  <div className="text-xs font-semibold text-court mb-2">Court {match.court}</div>
+                                )}
+                                <div className="flex justify-between items-center">
+                                  <div className="flex-1">
+                                    <div className="flex justify-between items-center mb-2">
+                                      <span className="font-medium text-foreground">{getDisplayName(match.team1)}</span>
+                                      {renderScoreInput(match, 'score1')}
+                                    </div>
+                                    <div className="text-muted-foreground text-sm mb-2">vs</div>
+                                    <div className="flex justify-between items-center">
+                                      <span className="font-medium text-foreground">{getDisplayName(match.team2)}</span>
+                                      {renderScoreInput(match, 'score2')}
+                                    </div>
+                                  </div>
+                                  <div className="ml-3">
+                                    {renderMatchAction(match)}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()
               ) : tournamentType === 'doubleelim' ? (
                 // Double Elimination display
                 <>
