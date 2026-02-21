@@ -164,6 +164,39 @@ const PickleballTournament = () => {
     })();
   }, [hydrated, router.isReady]);
 
+  // Load challenge from query params
+  useEffect(() => {
+    if (!hydrated || !router.isReady) return;
+    const { challenge, type, participantType: pType, pointsToWin, winByTwo, players } = router.query;
+    if (!challenge || !players) return;
+
+    // Reset state for the challenge
+    const playerNames = players.split(',').map(n => n.trim()).filter(Boolean);
+    const newParticipants = playerNames.map((name, i) => ({
+      id: Date.now() + i,
+      name,
+      wins: 0,
+      losses: 0,
+      points: 0,
+    }));
+
+    setTournamentType(type || 'roundrobin');
+    setParticipantType(pType || 'individual');
+    setTournamentSettings(prev => ({
+      ...prev,
+      pointsToWin: parseInt(pointsToWin) || 11,
+      winByTwo: winByTwo !== 'false',
+    }));
+    setParticipants(newParticipants);
+    setMatches([]);
+    setCurrentMatch(null);
+    setTournamentName(`Challenge: ${playerNames.join(' vs ')}`);
+    setCurrentView('setup');
+
+    // Clean up the URL
+    router.replace('/tournament', undefined, { shallow: true });
+  }, [hydrated, router.isReady]);
+
   // Auto-save game when tournament completes (view transitions to results)
   const [autoSaved, setAutoSaved] = useState(false);
   useEffect(() => {
