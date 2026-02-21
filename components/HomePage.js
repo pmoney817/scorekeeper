@@ -38,16 +38,57 @@ export default function HomePage() {
     router.push('/');
   };
 
+  // Pickleball SVG component - wiffle ball with holes
+  const Pickleball = ({ size = 60, className = '' }) => (
+    <svg width={size} height={size} viewBox="0 0 100 100" className={className}>
+      <circle cx="50" cy="50" r="48" fill="hsl(var(--ball-yellow))" stroke="hsl(var(--ball-yellow))" strokeWidth="1" opacity="0.9" />
+      <circle cx="35" cy="30" r="5" fill="hsl(var(--ball-yellow))" stroke="hsl(var(--foreground))" strokeWidth="0.8" opacity="0.3" />
+      <circle cx="55" cy="25" r="4.5" fill="hsl(var(--ball-yellow))" stroke="hsl(var(--foreground))" strokeWidth="0.8" opacity="0.3" />
+      <circle cx="70" cy="38" r="5" fill="hsl(var(--ball-yellow))" stroke="hsl(var(--foreground))" strokeWidth="0.8" opacity="0.3" />
+      <circle cx="28" cy="50" r="4.5" fill="hsl(var(--ball-yellow))" stroke="hsl(var(--foreground))" strokeWidth="0.8" opacity="0.3" />
+      <circle cx="50" cy="48" r="5.5" fill="hsl(var(--ball-yellow))" stroke="hsl(var(--foreground))" strokeWidth="0.8" opacity="0.3" />
+      <circle cx="72" cy="55" r="4.5" fill="hsl(var(--ball-yellow))" stroke="hsl(var(--foreground))" strokeWidth="0.8" opacity="0.3" />
+      <circle cx="38" cy="68" r="5" fill="hsl(var(--ball-yellow))" stroke="hsl(var(--foreground))" strokeWidth="0.8" opacity="0.3" />
+      <circle cx="58" cy="70" r="4.5" fill="hsl(var(--ball-yellow))" stroke="hsl(var(--foreground))" strokeWidth="0.8" opacity="0.3" />
+      <circle cx="45" cy="85" r="4" fill="hsl(var(--ball-yellow))" stroke="hsl(var(--foreground))" strokeWidth="0.8" opacity="0.3" />
+    </svg>
+  );
+
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Background image with overlay */}
+      {/* Background gradient with court colors */}
       <div className="absolute inset-0 z-0">
-        <img
-          src="/pickleball-hero.jpg"
-          alt="Pickleball court"
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/80 to-background" />
+        <div className="absolute inset-0 bg-gradient-to-br from-court/10 via-background to-ball/10" />
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-court/8 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-ball/10 rounded-full blur-3xl" />
+      </div>
+
+      {/* Floating pickleballs */}
+      <div className="absolute inset-0 z-0 pointer-events-none">
+        <div className="absolute top-[8%] left-[5%] animate-float" style={{ animationDelay: '0s' }}>
+          <Pickleball size={70} className="opacity-20 rotate-12" />
+        </div>
+        <div className="absolute top-[15%] right-[8%] animate-float" style={{ animationDelay: '1.5s' }}>
+          <Pickleball size={50} className="opacity-15 -rotate-6" />
+        </div>
+        <div className="absolute top-[40%] left-[3%] animate-float" style={{ animationDelay: '0.8s' }}>
+          <Pickleball size={40} className="opacity-10 rotate-45" />
+        </div>
+        <div className="absolute top-[55%] right-[4%] animate-float" style={{ animationDelay: '2.2s' }}>
+          <Pickleball size={55} className="opacity-15 -rotate-20" />
+        </div>
+        <div className="absolute top-[75%] left-[10%] animate-float" style={{ animationDelay: '3s' }}>
+          <Pickleball size={45} className="opacity-12 rotate-30" />
+        </div>
+        <div className="absolute top-[70%] right-[15%] animate-float" style={{ animationDelay: '1s' }}>
+          <Pickleball size={35} className="opacity-10 -rotate-45" />
+        </div>
+        <div className="absolute top-[30%] right-[20%] animate-float" style={{ animationDelay: '2.5s' }}>
+          <Pickleball size={30} className="opacity-8 rotate-15" />
+        </div>
+        <div className="absolute top-[88%] left-[40%] animate-float" style={{ animationDelay: '0.5s' }}>
+          <Pickleball size={60} className="opacity-10 -rotate-12" />
+        </div>
       </div>
 
       {/* Content */}
@@ -138,45 +179,42 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Logo + Tagline */}
-        <div className="flex flex-col items-center px-4 pb-2 animate-fade-in-up">
-          <img src="/pickleball-vibes-logo.png" alt="Pickleball Vibes logo" className="h-32 w-32 md:h-40 md:w-40 object-contain drop-shadow-md" />
-          <p className="text-muted-foreground font-body text-sm mt-1">
-            Fuel your mindset and sharpen your game
-          </p>
-        </div>
-
-        {/* Hero Section */}
+        {/* Hero Section with Logo */}
         <section className="px-4 md:px-8 pt-2 pb-10">
-          <div className="max-w-6xl mx-auto">
-            <div className="flex flex-col items-center">
-              {/* Hero text */}
-              <div className="text-center animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-foreground mb-5 leading-tight">
-                  Elevate Your
-                  <br />
-                  <span className="text-gradient-court">Pickleball</span> Game
-                </h1>
-                <p className="text-lg md:text-xl text-muted-foreground max-w-lg mx-auto font-body leading-relaxed mb-8">
-                  Daily affirmations to fuel your mindset, curated drills to sharpen your skills, and tools to run your tournaments.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                  <Link href="/tournament">
-                    <span className="inline-flex items-center justify-center gap-2 bg-gradient-court text-white px-8 py-4 rounded-2xl font-bold shadow-elevated hover:scale-105 transition-all duration-300 cursor-pointer text-lg w-full sm:w-auto">
-                      <Trophy className="w-5 h-5" />
-                      Create Game
-                      <ArrowRight className="w-5 h-5" />
-                    </span>
-                  </Link>
-                  <Link href="/affirmations">
-                    <span className="inline-flex items-center justify-center gap-2 bg-white/70 backdrop-blur-sm text-foreground px-8 py-4 rounded-2xl font-semibold shadow-soft hover:bg-white/90 transition-all duration-300 border border-white/50 text-lg w-full sm:w-auto cursor-pointer">
-                      <Sparkles className="w-5 h-5 text-ball" />
-                      Daily Vibes
-                    </span>
-                  </Link>
-                </div>
+          <div className="max-w-6xl mx-auto flex flex-col items-center">
+            {/* Logo with glow effect */}
+            <div className="relative animate-fade-in-up mb-6">
+              <div className="absolute inset-0 bg-gradient-to-br from-court/30 via-ball/20 to-court/30 rounded-full blur-2xl scale-110" />
+              <div className="relative bg-white/40 backdrop-blur-sm rounded-full p-4 shadow-elevated border border-white/50">
+                <img src="/pickleball-vibes-logo.png" alt="Pickleball Vibes logo" className="h-44 w-44 md:h-56 md:w-56 object-contain drop-shadow-lg" />
               </div>
+            </div>
 
+            {/* Hero text */}
+            <div className="text-center animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-foreground mb-4 leading-tight">
+                Elevate Your
+                <br />
+                <span className="text-gradient-court">Pickleball</span> Game
+              </h1>
+              <p className="text-lg md:text-xl text-muted-foreground max-w-lg mx-auto font-body leading-relaxed mb-8">
+                Daily affirmations to fuel your mindset, curated drills to sharpen your skills, and tools to run your tournaments.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link href="/tournament">
+                  <span className="inline-flex items-center justify-center gap-2 bg-gradient-court text-white px-8 py-4 rounded-2xl font-bold shadow-elevated hover:scale-105 transition-all duration-300 cursor-pointer text-lg w-full sm:w-auto">
+                    <Trophy className="w-5 h-5" />
+                    Create Game
+                    <ArrowRight className="w-5 h-5" />
+                  </span>
+                </Link>
+                <Link href="/affirmations">
+                  <span className="inline-flex items-center justify-center gap-2 bg-white/70 backdrop-blur-sm text-foreground px-8 py-4 rounded-2xl font-semibold shadow-soft hover:bg-white/90 transition-all duration-300 border border-white/50 text-lg w-full sm:w-auto cursor-pointer">
+                    <Sparkles className="w-5 h-5 text-ball" />
+                    Daily Vibes
+                  </span>
+                </Link>
+              </div>
             </div>
           </div>
         </section>
@@ -209,7 +247,7 @@ export default function HomePage() {
         {/* Footer */}
         <footer className="py-12 px-6 mt-auto">
           <div className="max-w-6xl mx-auto flex items-center justify-center gap-4">
-            <img src="/pickleball-vibes-logo.png" alt="Logo" className="h-28 w-28 object-contain opacity-70" />
+            <img src="/pickleball-vibes-logo.png" alt="Logo" className="h-16 w-16 object-contain opacity-60" />
             <p className="text-lg text-muted-foreground font-body">
               Made with love for pickleball enthusiasts
             </p>
@@ -217,13 +255,6 @@ export default function HomePage() {
         </footer>
       </div>
 
-      {/* Decorative floating elements */}
-      <div className="absolute top-32 left-[8%] w-5 h-5 bg-ball rounded-full opacity-40 animate-float" />
-      <div className="absolute top-60 right-[12%] w-3 h-3 bg-court rounded-full opacity-30 animate-float" style={{ animationDelay: '1s' }} />
-      <div className="absolute bottom-60 left-[15%] w-4 h-4 bg-ball rounded-full opacity-35 animate-float" style={{ animationDelay: '2s' }} />
-      <div className="absolute bottom-32 right-[10%] w-2 h-2 bg-court rounded-full opacity-25 animate-float" style={{ animationDelay: '3s' }} />
-      <div className="absolute top-[45%] left-[5%] w-3 h-3 bg-ball/60 rounded-full opacity-30 animate-float" style={{ animationDelay: '0.5s' }} />
-      <div className="absolute top-[55%] right-[6%] w-4 h-4 bg-court/40 rounded-full opacity-20 animate-float" style={{ animationDelay: '2.5s' }} />
     </div>
   );
 }
