@@ -134,11 +134,19 @@ export default function LoginPage() {
       {/* Content */}
       <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-8">
         <div className="w-full max-w-md animate-fade-in-up">
-          {/* Logo */}
-          <div className="flex justify-center mb-4">
+          {/* Logo + Heading */}
+          <div className="flex items-center justify-center gap-3 mb-4">
             <Link href="/">
-              <img src="/pickleball-vibes-logo.png" alt="Pickleball Vibes" className="h-32 w-32 md:h-40 md:w-40 object-contain drop-shadow-md cursor-pointer hover:scale-105 transition-transform duration-300" />
+              <img src="/pickleball-vibes-logo.png" alt="Pickleball Vibes" className="h-32 w-32 md:h-36 md:w-36 object-contain drop-shadow-md cursor-pointer hover:scale-105 transition-transform duration-300" />
             </Link>
+            <div>
+              <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">
+                Welcome <span className="text-gradient-court">Back</span>
+              </h1>
+              <p className="text-muted-foreground font-body text-sm">
+                Sign in to your account
+              </p>
+            </div>
           </div>
 
           {/* Card */}
@@ -146,19 +154,6 @@ export default function LoginPage() {
             {/* Background accent */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-court opacity-5 rounded-full -translate-y-1/2 translate-x-1/2" />
             <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-sunny opacity-10 rounded-full translate-y-1/2 -translate-x-1/2" />
-
-            {/* Icon + Heading */}
-            <div className="flex justify-center mb-4">
-              <div className="bg-gradient-court p-3.5 rounded-2xl shadow-soft">
-                <Lock className="w-6 h-6 text-white" />
-              </div>
-            </div>
-            <h1 className="text-2xl md:text-3xl font-display font-bold text-center text-foreground mb-1">
-              Welcome Back
-            </h1>
-            <p className="text-center text-muted-foreground font-body text-sm mb-6">
-              Sign in to your account
-            </p>
 
             {/* Error message */}
             {error && (

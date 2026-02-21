@@ -199,26 +199,23 @@ export default function SignupPage() {
 
       {/* Content */}
       <div className="relative z-10 min-h-screen flex flex-col">
-        {/* Logo */}
-        <div className="px-4 md:px-8 pt-5 pb-2 flex justify-center animate-fade-in-up">
-          <Link href="/">
-            <img src="/pickleball-vibes-logo.png" alt="Pickleball Vibes" className="h-36 w-36 md:h-48 md:w-48 object-contain drop-shadow-md cursor-pointer hover:scale-105 transition-transform duration-300" />
-          </Link>
-        </div>
-
-        {/* Heading outside card */}
-        <div className="text-center mb-4 animate-fade-in-up" style={{ animationDelay: '0.05s' }}>
-          <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground mb-1">
-            Join <span className="text-gradient-court">Pickleball Vibes</span>
-          </h1>
-          <p className="text-muted-foreground font-body text-base">
-            Create your account and start playing
-          </p>
-        </div>
-
         {/* Main content */}
         <div className="flex-1 flex items-start justify-center px-4 md:px-8 py-4 pb-8">
-          <div className="w-full max-w-2xl animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+          <div className="w-full max-w-2xl animate-fade-in-up">
+            {/* Logo + Heading */}
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <Link href="/">
+                <img src="/pickleball-vibes-logo.png" alt="Pickleball Vibes" className="h-32 w-32 md:h-36 md:w-36 object-contain drop-shadow-md cursor-pointer hover:scale-105 transition-transform duration-300" />
+              </Link>
+              <div>
+                <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">
+                  Join <span className="text-gradient-court">Pickleball Vibes</span>
+                </h1>
+                <p className="text-muted-foreground font-body text-sm">
+                  Create your account and start playing
+                </p>
+              </div>
+            </div>
 
             {/* Error message */}
             {error && (

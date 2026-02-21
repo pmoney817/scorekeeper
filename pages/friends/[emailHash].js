@@ -215,23 +215,24 @@ export default function FriendProfilePage() {
           </div>
         </div>
 
-        {/* Logo */}
-        <div className="px-4 md:px-8 pt-2 pb-4 flex justify-center animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-          <Link href="/">
-            <img src="/pickleball-vibes-logo.png" alt="Pickleball Vibes" className="h-48 w-48 md:h-64 md:w-64 object-contain drop-shadow-md cursor-pointer hover:scale-105 transition-transform duration-300" />
-          </Link>
-        </div>
-
-        {/* Main content */}
-        <div className="flex-1 px-4 md:px-8 py-4 pb-12 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+        {/* Page title + content */}
+        <div className="flex-1 px-4 md:px-8 py-2 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <Link href="/">
+              <img src="/pickleball-vibes-logo.png" alt="Pickleball Vibes" className="h-32 w-32 md:h-36 md:w-36 object-contain drop-shadow-md cursor-pointer hover:scale-105 transition-transform duration-300" />
+            </Link>
+            <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">
+              Friend <span className="text-gradient-court">Profile</span>
+            </h1>
+          </div>
           {emailHash && <FriendProfile emailHash={emailHash} />}
         </div>
 
         {/* Footer */}
-        <footer className="py-12 px-6 mt-auto">
-          <div className="max-w-6xl mx-auto flex items-center justify-center gap-4">
-            <img src="/pickleball-vibes-logo.png" alt="Logo" className="h-16 w-16 object-contain opacity-60" />
-            <p className="text-lg text-muted-foreground font-body">
+        <footer className="py-8 px-6 mt-auto">
+          <div className="max-w-6xl mx-auto flex items-center justify-center gap-3">
+            <img src="/pickleball-vibes-logo.png" alt="Logo" className="h-10 w-10 object-contain opacity-60" />
+            <p className="text-sm text-muted-foreground font-body">
               Made with love for pickleball enthusiasts
             </p>
           </div>

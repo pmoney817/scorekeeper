@@ -188,11 +188,19 @@ export default function ResetPasswordPage() {
       {/* Content */}
       <div className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-8">
         <div className="w-full max-w-md animate-fade-in-up">
-          {/* Logo */}
-          <div className="flex justify-center mb-4">
+          {/* Logo + Heading */}
+          <div className="flex items-center justify-center gap-3 mb-4">
             <Link href="/">
-              <img src="/pickleball-vibes-logo.png" alt="Pickleball Vibes" className="h-32 w-32 md:h-40 md:w-40 object-contain drop-shadow-md cursor-pointer hover:scale-105 transition-transform duration-300" />
+              <img src="/pickleball-vibes-logo.png" alt="Pickleball Vibes" className="h-32 w-32 md:h-36 md:w-36 object-contain drop-shadow-md cursor-pointer hover:scale-105 transition-transform duration-300" />
             </Link>
+            <div>
+              <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">
+                Reset <span className="text-gradient-court">Password</span>
+              </h1>
+              <p className="text-muted-foreground font-body text-sm">
+                Get back into your account
+              </p>
+            </div>
           </div>
 
           {/* Card */}
@@ -200,17 +208,6 @@ export default function ResetPasswordPage() {
             {/* Background accent */}
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-sunny opacity-10 rounded-full -translate-y-1/2 translate-x-1/2" />
             <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-court opacity-5 rounded-full translate-y-1/2 -translate-x-1/2" />
-
-            {/* Icon */}
-            <div className="flex justify-center mb-4">
-              <div className={`p-3.5 rounded-2xl shadow-soft ${step === 'success' ? 'bg-gradient-sunny' : 'bg-gradient-court'}`}>
-                {step === 'success' ? (
-                  <CheckCircle className="w-6 h-6 text-foreground" />
-                ) : (
-                  <KeyRound className="w-6 h-6 text-white" />
-                )}
-              </div>
-            </div>
 
             {/* Error message */}
             {error && (
@@ -237,9 +234,6 @@ export default function ResetPasswordPage() {
 
             {step === 'email' && (
               <>
-                <h1 className="text-2xl md:text-3xl font-display font-bold text-center text-foreground mb-1">
-                  Reset Password
-                </h1>
                 <p className="text-center text-muted-foreground font-body text-sm mb-6 leading-relaxed">
                   Enter your email to reset your password
                 </p>
@@ -274,9 +268,6 @@ export default function ResetPasswordPage() {
 
             {step === 'password' && (
               <>
-                <h1 className="text-2xl md:text-3xl font-display font-bold text-center text-foreground mb-1">
-                  Reset Password
-                </h1>
                 <p className="text-center text-muted-foreground font-body text-sm mb-6 leading-relaxed">
                   {securityQuestion
                     ? <>Answer your security question and set a new password for <span className="font-semibold text-foreground">{email}</span></>

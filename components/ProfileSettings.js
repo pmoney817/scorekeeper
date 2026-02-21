@@ -197,8 +197,6 @@ export default function ProfileSettings() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-3xl font-display font-bold text-foreground mb-6">Profile Settings</h1>
-
       {/* Messages */}
       {error && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm font-body mb-4">
@@ -211,29 +209,29 @@ export default function ProfileSettings() {
         </div>
       )}
 
-      {/* Avatar Section */}
-      <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-white/50 shadow-soft mb-6">
-        <div className="flex flex-col items-center">
+      {/* Avatar + Name + Email header */}
+      <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-white/50 shadow-soft mb-5">
+        <div className="flex items-center gap-5">
           <div
             onClick={handleAvatarClick}
-            className="relative w-24 h-24 rounded-full cursor-pointer group"
+            className="relative w-20 h-20 rounded-full cursor-pointer group flex-shrink-0"
           >
             {displayAvatar ? (
               <img
                 src={displayAvatar}
                 alt="Profile"
-                className="w-24 h-24 rounded-full object-cover border-2 border-white/50"
+                className="w-20 h-20 rounded-full object-cover border-2 border-white/50"
               />
             ) : (
-              <div className="w-24 h-24 rounded-full bg-court/20 flex items-center justify-center text-court font-bold text-3xl border-2 border-white/50">
+              <div className="w-20 h-20 rounded-full bg-court/20 flex items-center justify-center text-court font-bold text-2xl border-2 border-white/50">
                 {name.charAt(0).toUpperCase() || '?'}
               </div>
             )}
             <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               {uploadingAvatar ? (
-                <Loader2 className="w-6 h-6 text-white animate-spin" />
+                <Loader2 className="w-5 h-5 text-white animate-spin" />
               ) : (
-                <Camera className="w-6 h-6 text-white" />
+                <Camera className="w-5 h-5 text-white" />
               )}
             </div>
           </div>
@@ -244,121 +242,101 @@ export default function ProfileSettings() {
             onChange={handleAvatarChange}
             className="hidden"
           />
-          <p className="text-sm text-muted-foreground mt-2">Click to upload photo</p>
+          <div className="min-w-0">
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Your name"
+              className="text-xl font-display font-bold text-foreground bg-transparent border-none outline-none w-full placeholder-muted-foreground focus:ring-0 p-0"
+            />
+            <p className="text-sm text-muted-foreground font-body truncate">{user.email}</p>
+            {user.createdAt && (
+              <p className="text-xs text-muted-foreground/70 font-body mt-0.5">
+                Member since {new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Editable Fields */}
-      <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-white/50 shadow-soft mb-6 space-y-4">
-        <div>
-          <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Name</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Your name"
-            className={inputClass}
-          />
-        </div>
-
+      {/* Profile Fields */}
+      <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-white/50 shadow-soft mb-5 space-y-4">
         <div>
           <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Bio</label>
           <textarea
             value={bio}
             onChange={(e) => setBio(e.target.value.slice(0, 500))}
             placeholder="Tell others about yourself..."
-            rows={3}
+            rows={2}
             className={`${inputClass} resize-none`}
           />
           <p className="text-xs text-muted-foreground mt-1 text-right">{bio.length}/500</p>
         </div>
 
-        <div>
-          <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">
-            DUPR Rating <span className="font-normal text-muted-foreground">(optional)</span>
-          </label>
-          <input
-            type="number"
-            step="0.001"
-            min="2.000"
-            max="8.000"
-            value={duprRating}
-            onChange={(e) => setDuprRating(e.target.value)}
-            placeholder="e.g. 3.500"
-            className={inputClass}
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Skill Level</label>
-          <select
-            value={level}
-            onChange={(e) => setLevel(e.target.value)}
-            className={selectClass}
-          >
-            <option value="" disabled>Select your level</option>
-            <option value="beginner">Beginner</option>
-            <option value="intermediate">Intermediate</option>
-            <option value="advanced">Advanced</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">How often do you play?</label>
-          <select
-            value={timesPerWeek}
-            onChange={(e) => setTimesPerWeek(e.target.value)}
-            className={selectClass}
-          >
-            <option value="" disabled>Times per week</option>
-            <option value="1">1 time per week</option>
-            <option value="2">2 times per week</option>
-            <option value="3">3 times per week</option>
-            <option value="4">4 times per week</option>
-            <option value="5+">5+ times per week</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">How long have you been playing?</label>
-          <select
-            value={yearsPlaying}
-            onChange={(e) => setYearsPlaying(e.target.value)}
-            className={selectClass}
-          >
-            <option value="" disabled>Select experience</option>
-            <option value="less-than-6-months">Less than 6 months</option>
-            <option value="6-months-to-1-year">6 months - 1 year</option>
-            <option value="1-2-years">1 - 2 years</option>
-            <option value="2-5-years">2 - 5 years</option>
-            <option value="5-plus-years">5+ years</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Read-only Fields */}
-      <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-6 border border-white/50 shadow-soft mb-6 space-y-4">
-        <div>
-          <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Email</label>
-          <input
-            type="email"
-            value={user.email}
-            disabled
-            className={`${inputClass} opacity-60 cursor-not-allowed`}
-          />
-        </div>
-
-        {user.createdAt && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Member Since</label>
+            <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Skill Level</label>
+            <select
+              value={level}
+              onChange={(e) => setLevel(e.target.value)}
+              className={selectClass}
+            >
+              <option value="" disabled>Select your level</option>
+              <option value="beginner">Beginner</option>
+              <option value="intermediate">Intermediate</option>
+              <option value="advanced">Advanced</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">
+              DUPR Rating <span className="font-normal text-muted-foreground">(optional)</span>
+            </label>
             <input
-              type="text"
-              value={new Date(user.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-              disabled
-              className={`${inputClass} opacity-60 cursor-not-allowed`}
+              type="number"
+              step="0.001"
+              min="2.000"
+              max="8.000"
+              value={duprRating}
+              onChange={(e) => setDuprRating(e.target.value)}
+              placeholder="e.g. 3.500"
+              className={inputClass}
             />
           </div>
-        )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Play Frequency</label>
+            <select
+              value={timesPerWeek}
+              onChange={(e) => setTimesPerWeek(e.target.value)}
+              className={selectClass}
+            >
+              <option value="" disabled>Times per week</option>
+              <option value="1">1 time per week</option>
+              <option value="2">2 times per week</option>
+              <option value="3">3 times per week</option>
+              <option value="4">4 times per week</option>
+              <option value="5+">5+ times per week</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Years Playing</label>
+            <select
+              value={yearsPlaying}
+              onChange={(e) => setYearsPlaying(e.target.value)}
+              className={selectClass}
+            >
+              <option value="" disabled>Select experience</option>
+              <option value="less-than-6-months">Less than 6 months</option>
+              <option value="6-months-to-1-year">6 months - 1 year</option>
+              <option value="1-2-years">1 - 2 years</option>
+              <option value="2-5-years">2 - 5 years</option>
+              <option value="5-plus-years">5+ years</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       {/* Save Button */}
@@ -381,22 +359,27 @@ export default function ProfileSettings() {
       </button>
 
       {/* Delete Account */}
-      <div className="mt-10 bg-red-50/60 backdrop-blur-sm rounded-2xl p-6 border border-red-200/50 shadow-soft">
-        <h2 className="text-lg font-display font-bold text-red-700 mb-2">Delete Account</h2>
-        <p className="text-sm text-red-600/80 font-body mb-4">
-          This will permanently delete your account, profile, friends, and all associated data. This action cannot be undone.
-        </p>
+      <div className="mt-8 bg-red-50/60 backdrop-blur-sm rounded-2xl p-5 border border-red-200/50 shadow-soft">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-display font-bold text-red-700">Delete Account</h2>
+            <p className="text-xs text-red-600/80 font-body mt-0.5">
+              Permanently delete your account and all data
+            </p>
+          </div>
+          {!showDeleteConfirm && (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-xl font-semibold text-sm hover:bg-red-200 transition-colors flex-shrink-0"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete
+            </button>
+          )}
+        </div>
 
-        {!showDeleteConfirm ? (
-          <button
-            onClick={() => setShowDeleteConfirm(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-red-100 text-red-700 rounded-xl font-semibold text-sm hover:bg-red-200 transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />
-            Delete My Account
-          </button>
-        ) : (
-          <div className="space-y-3">
+        {showDeleteConfirm && (
+          <div className="mt-4 space-y-3">
             <label className="block text-sm font-semibold text-red-700 font-body">
               Enter your password to confirm
             </label>
