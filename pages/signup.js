@@ -302,8 +302,20 @@ export default function SignupPage() {
               <div className="relative bg-white/70 backdrop-blur-md rounded-2xl shadow-elevated p-6 md:p-8 border border-white/50 overflow-hidden">
                 <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-sunny opacity-8 rounded-full translate-y-1/2 -translate-x-1/2" />
                 <div className="flex items-center gap-3 mb-5">
-                  <div className="bg-gradient-sunny p-2.5 rounded-xl shadow-soft">
-                    <span className="text-foreground text-lg">&#127955;</span>
+                  <div className="bg-gradient-sunny p-2.5 rounded-xl shadow-soft flex items-center justify-center">
+                    <svg width="20" height="20" viewBox="0 0 100 100" className="text-foreground">
+                      <ellipse cx="45" cy="38" rx="32" ry="36" fill="#2E7D32" stroke="#1B5E20" strokeWidth="3" transform="rotate(-15 45 38)" />
+                      <ellipse cx="45" cy="38" rx="28" ry="32" fill="#4CAF50" transform="rotate(-15 45 38)" />
+                      <circle cx="35" cy="25" r="2.5" fill="#2E7D32" opacity="0.5" />
+                      <circle cx="45" cy="22" r="2.5" fill="#2E7D32" opacity="0.5" />
+                      <circle cx="55" cy="28" r="2.5" fill="#2E7D32" opacity="0.5" />
+                      <circle cx="30" cy="38" r="2.5" fill="#2E7D32" opacity="0.5" />
+                      <circle cx="42" cy="36" r="2.5" fill="#2E7D32" opacity="0.5" />
+                      <circle cx="54" cy="40" r="2.5" fill="#2E7D32" opacity="0.5" />
+                      <circle cx="36" cy="50" r="2.5" fill="#2E7D32" opacity="0.5" />
+                      <circle cx="48" cy="52" r="2.5" fill="#2E7D32" opacity="0.5" />
+                      <rect x="58" y="62" width="8" height="30" rx="4" fill="#8D6E63" stroke="#5D4037" strokeWidth="2" transform="rotate(-15 62 77)" />
+                    </svg>
                   </div>
                   <h2 className="text-lg font-display font-bold text-foreground">Player Profile</h2>
                 </div>
