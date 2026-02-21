@@ -1750,7 +1750,7 @@ Examples:
     const inputClass = isSmall
       ? 'w-12 text-center text-sm font-bold border rounded-md py-0.5 focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none'
       : 'w-14 text-center text-lg font-bold border rounded-lg py-1 focus:outline-none focus:ring-2 focus:ring-blue-500 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none';
-    const borderColor = match.completed ? 'border-green-400 bg-green-50' : 'border-gray-300';
+    const borderColor = match.completed ? 'border-court bg-court/10' : 'border-white/40';
     return (
       <input
         type="number"
@@ -1773,7 +1773,7 @@ Examples:
         </div>
       );
     }
-    if (!match.team1 || !match.team2) return <span className="text-gray-500 text-sm">Waiting</span>;
+    if (!match.team1 || !match.team2) return <span className="text-muted-foreground text-sm">Waiting</span>;
     return null;
   };
 
@@ -1793,9 +1793,14 @@ Examples:
             <Link href="/">
               <img src="/pickleball-vibes-logo.png" alt="Pickleball Vibes" className="h-32 w-32 md:h-36 md:w-36 object-contain drop-shadow-md cursor-pointer hover:scale-105 transition-transform duration-300" />
             </Link>
-            <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">
-              Tournament <span className="text-gradient-court">Manager</span>
-            </h1>
+            <div>
+              <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">
+                Tournament <span className="text-gradient-court">Manager</span>
+              </h1>
+              {currentView === 'format-select' && (
+                <p className="text-muted-foreground font-body text-sm">Select a format to get started</p>
+              )}
+            </div>
           </div>
 
           <div className="flex gap-2">
@@ -1874,10 +1879,6 @@ Examples:
         {/* Format Selection View */}
         {currentView === 'format-select' && (
           <div className="space-y-6 animate-fade-in-up">
-            <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-foreground mb-2">Choose Your Game Format</h2>
-              <p className="text-muted-foreground font-body">Select a format to get started</p>
-            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <button
@@ -2139,62 +2140,65 @@ Examples:
 
         {/* AI Setup View */}
         {currentView === 'ai-setup' && (
-          <div className="space-y-6">
-            
+          <div className="space-y-6 animate-fade-in-up">
+
             {/* AI Setup Header */}
-            <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-6 rounded-lg border-2 border-purple-200">
-              <h2 className="text-2xl font-semibold mb-2 flex items-center gap-3">
-                <Bot className="text-purple-600" />
-                AI Tournament Setup
-              </h2>
-              <p className="text-gray-700">
-                Tell me about your tournament in natural language and I'll set everything up for you! 
+            <div className="relative bg-white/70 backdrop-blur-md p-6 rounded-2xl border border-white/50 shadow-soft overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-court opacity-5 rounded-full -translate-y-1/2 translate-x-1/2" />
+              <div className="flex items-center gap-3 mb-3">
+                <div className="bg-gradient-court p-2.5 rounded-xl shadow-soft">
+                  <Bot className="text-white w-5 h-5" />
+                </div>
+                <h2 className="text-xl font-display font-bold text-foreground">AI Tournament Setup</h2>
+              </div>
+              <p className="text-muted-foreground font-body text-sm leading-relaxed">
+                Tell me about your tournament in natural language and I'll set everything up for you!
                 Try saying something like: "I want a round robin tournament with 6 players: John, Mary, Bob, Alice, Carol, and Dave. Play to 11 points."
               </p>
             </div>
 
             {/* Chat Interface */}
-            <div className="bg-white rounded-lg border border-gray-200 min-h-[400px] flex flex-col">
-              
+            <div className="bg-white/70 backdrop-blur-md rounded-2xl border border-white/50 shadow-soft min-h-[400px] flex flex-col overflow-hidden">
+
               {/* Chat Messages */}
               <div className="flex-1 p-4 space-y-4 max-h-[400px] overflow-y-auto">
                 {aiMessages.length === 0 ? (
-                  <div className="text-center text-gray-500 py-8">
-                    <MessageCircle size={48} className="mx-auto mb-4 text-gray-300" />
-                    <p>Start by describing your tournament setup!</p>
+                  <div className="text-center text-muted-foreground py-8">
+                    <MessageCircle size={48} className="mx-auto mb-4 text-court/30" />
+                    <p className="font-body">Start by describing your tournament setup!</p>
                     <div className="mt-4 text-sm text-left max-w-md mx-auto space-y-2">
-                      <p><strong>Examples you can try:</strong></p>
-                      <p className="bg-gray-50 p-2 rounded italic">"Round robin with 8 individual players: Alice, Bob, Carol, Dave, Eve, Frank, Grace, and Henry"</p>
-                      <p className="bg-gray-50 p-2 rounded italic">"Bracket tournament with teams playing to 15 points"</p>
-                      <p className="bg-gray-50 p-2 rounded italic">"4 teams: Red (John & Jane), Blue (Bob & Betty), Green (Carl & Carla), Yellow (Dan & Diane)"</p>
+                      <p className="font-semibold text-foreground">Examples you can try:</p>
+                      <p className="bg-court/5 p-2.5 rounded-xl italic font-body text-foreground/80">"Round robin with 8 individual players: Alice, Bob, Carol, Dave, Eve, Frank, Grace, and Henry"</p>
+                      <p className="bg-court/5 p-2.5 rounded-xl italic font-body text-foreground/80">"Bracket tournament with teams playing to 15 points"</p>
+                      <p className="bg-court/5 p-2.5 rounded-xl italic font-body text-foreground/80">"4 teams: Red (John & Jane), Blue (Bob & Betty), Green (Carl & Carla), Yellow (Dan & Diane)"</p>
                     </div>
                   </div>
                 ) : (
                   aiMessages.map((message) => (
                     <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                      <div className={`max-w-[80%] p-3 rounded-lg ${
-                        message.role === 'user' 
-                          ? 'bg-blue-600 text-white' 
-                          : 'bg-gray-100 text-gray-800'
+                      <div className={`max-w-[80%] p-3 rounded-2xl ${
+                        message.role === 'user'
+                          ? 'bg-gradient-court text-white shadow-soft'
+                          : 'bg-white/80 text-foreground border border-white/50 shadow-soft'
                       }`}>
                         <div className="flex items-start gap-2">
-                          {message.role === 'assistant' && <Bot size={16} className="text-purple-600 mt-1" />}
-                          <p className="text-sm">{message.content}</p>
+                          {message.role === 'assistant' && <Bot size={16} className="text-court mt-1" />}
+                          <p className="text-sm font-body">{message.content}</p>
                         </div>
                       </div>
                     </div>
                   ))
                 )}
-                
+
                 {isProcessing && (
                   <div className="flex justify-start">
-                    <div className="bg-gray-100 text-gray-800 p-3 rounded-lg">
+                    <div className="bg-white/80 text-foreground p-3 rounded-2xl border border-white/50 shadow-soft">
                       <div className="flex items-center gap-2">
-                        <Bot size={16} className="text-purple-600" />
+                        <Bot size={16} className="text-court" />
                         <div className="flex gap-1">
-                          <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce"></div>
-                          <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                          <div className="w-2 h-2 bg-purple-600 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                          <div className="w-2 h-2 bg-court rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-court rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                          <div className="w-2 h-2 bg-court rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
                         </div>
                       </div>
                     </div>
@@ -2203,7 +2207,7 @@ Examples:
               </div>
 
               {/* Chat Input */}
-              <div className="border-t border-gray-200 p-4">
+              <div className="border-t border-white/40 p-4">
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -2212,15 +2216,15 @@ Examples:
                     onKeyDown={(e) => e.key === 'Enter' && !isProcessing && handleAISubmit()}
                     placeholder="Describe your tournament setup..."
                     disabled={isProcessing}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-100"
+                    className="flex-1 px-4 py-2.5 bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-court/50 focus:border-court/30 text-foreground placeholder-muted-foreground font-body transition-all duration-200 disabled:opacity-50"
                   />
                   <button
                     onClick={toggleSpeechToText}
                     disabled={isProcessing}
-                    className={`px-3 py-2 rounded-lg flex items-center transition-colors ${
+                    className={`px-3 py-2.5 rounded-xl flex items-center transition-all duration-300 ${
                       isListening
-                        ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse'
-                        : 'bg-gray-200 hover:bg-gray-300 text-gray-700'
+                        ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse shadow-soft'
+                        : 'bg-white/70 hover:bg-white/90 text-foreground border border-white/40 shadow-soft'
                     }`}
                     title={isListening ? 'Stop listening' : 'Speak'}
                   >
@@ -2229,7 +2233,7 @@ Examples:
                   <button
                     onClick={handleAISubmit}
                     disabled={isProcessing || !userInput.trim()}
-                    className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                    className="bg-gradient-court hover:shadow-elevated disabled:opacity-40 text-white px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all duration-300 shadow-soft"
                   >
                     <Send size={16} />
                   </button>
@@ -2239,43 +2243,46 @@ Examples:
 
             {/* Extracted Data Preview */}
             {extractedData && (
-              <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6">
-                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Trophy className="text-green-600" />
-                  Tournament Setup Preview
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <span className="font-medium">Tournament Type:</span> 
-                    <span className="ml-2 capitalize">{extractedData.tournamentType.replace('roundrobin', 'Round Robin')}</span>
+              <div className="relative bg-white/70 backdrop-blur-md rounded-2xl border border-white/50 shadow-soft p-6 overflow-hidden">
+                <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-court opacity-5 rounded-full translate-y-1/2 -translate-x-1/2" />
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="bg-gradient-court p-2 rounded-xl shadow-soft">
+                    <Trophy className="text-white w-4 h-4" />
                   </div>
-                  <div>
-                    <span className="font-medium">Participant Type:</span> 
-                    <span className="ml-2 capitalize">{extractedData.participantType}</span>
+                  <h3 className="text-lg font-display font-bold text-foreground">Tournament Setup Preview</h3>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                  <div className="bg-white/50 rounded-xl px-4 py-2.5">
+                    <span className="font-semibold text-foreground text-sm">Tournament Type:</span>
+                    <span className="ml-2 capitalize text-muted-foreground text-sm">{extractedData.tournamentType.replace('roundrobin', 'Round Robin')}</span>
+                  </div>
+                  <div className="bg-white/50 rounded-xl px-4 py-2.5">
+                    <span className="font-semibold text-foreground text-sm">Participant Type:</span>
+                    <span className="ml-2 capitalize text-muted-foreground text-sm">{extractedData.participantType}</span>
                   </div>
                   {extractedData.tournamentType === 'roundrobin' && (
-                    <div>
-                      <span className="font-medium">Rounds:</span> 
-                      <span className="ml-2">{extractedData.rounds}</span>
+                    <div className="bg-white/50 rounded-xl px-4 py-2.5">
+                      <span className="font-semibold text-foreground text-sm">Rounds:</span>
+                      <span className="ml-2 text-muted-foreground text-sm">{extractedData.rounds}</span>
                     </div>
                   )}
-                  <div>
-                    <span className="font-medium">Points to Win:</span> 
-                    <span className="ml-2">{extractedData.pointsToWin}</span>
+                  <div className="bg-white/50 rounded-xl px-4 py-2.5">
+                    <span className="font-semibold text-foreground text-sm">Points to Win:</span>
+                    <span className="ml-2 text-muted-foreground text-sm">{extractedData.pointsToWin}</span>
                   </div>
-                  <div>
-                    <span className="font-medium">Win by 2:</span> 
-                    <span className="ml-2">{extractedData.winByTwo ? 'Yes' : 'No'}</span>
+                  <div className="bg-white/50 rounded-xl px-4 py-2.5">
+                    <span className="font-semibold text-foreground text-sm">Win by 2:</span>
+                    <span className="ml-2 text-muted-foreground text-sm">{extractedData.winByTwo ? 'Yes' : 'No'}</span>
                   </div>
                 </div>
 
                 {extractedData.participants && extractedData.participants.length > 0 && (
-                  <div className="mb-4">
-                    <span className="font-medium">Participants ({extractedData.participants.length}):</span>
+                  <div className="mb-5">
+                    <span className="font-semibold text-foreground text-sm">Participants ({extractedData.participants.length}):</span>
                     <div className="mt-2 flex flex-wrap gap-2">
                       {extractedData.participants.map((participant, index) => (
-                        <span key={index} className="bg-white px-3 py-1 rounded-full text-sm border border-green-300">
+                        <span key={index} className="bg-court/10 text-court px-3 py-1.5 rounded-full text-sm font-semibold border border-court/20">
                           {participant.name}{participant.partner && ` & ${participant.partner}`}
                         </span>
                       ))}
@@ -2286,13 +2293,13 @@ Examples:
                 <div className="flex gap-3">
                   <button
                     onClick={applyAISettings}
-                    className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-semibold transition-colors"
+                    className="bg-gradient-court hover:shadow-elevated text-white px-6 py-2.5 rounded-xl font-semibold transition-all duration-300 shadow-soft"
                   >
                     Apply These Settings
                   </button>
                   <button
                     onClick={() => setExtractedData(null)}
-                    className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg transition-colors"
+                    className="bg-white/70 backdrop-blur-md hover:bg-white/90 text-foreground px-6 py-2.5 rounded-xl font-semibold border border-white/40 shadow-soft transition-all duration-300"
                   >
                     Make Changes
                   </button>
@@ -2304,17 +2311,17 @@ Examples:
 
         {/* Setup View */}
         {currentView === 'setup' && (
-          <div className="space-y-6">
-            
+          <div className="space-y-6 animate-fade-in-up">
+
             {/* Game Name */}
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Game Name <span className="text-red-500">*</span></label>
+            <div className="bg-white/70 backdrop-blur-md p-6 rounded-2xl border border-white/50 shadow-soft">
+              <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Game Name <span className="text-red-500">*</span></label>
               <input
                 type="text"
                 value={tournamentName}
                 onChange={(e) => setTournamentName(e.target.value)}
                 placeholder="e.g. Saturday Night Showdown"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-lg"
+                className="w-full px-4 py-2.5 bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-court/50 focus:border-court/30 text-foreground font-body transition-all duration-200 text-lg"
               />
             </div>
 
@@ -2322,7 +2329,7 @@ Examples:
             <div className="flex justify-end">
               <button
                 onClick={() => setShowInviteModal(true)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium text-sm transition-colors"
+                className="flex items-center gap-2 px-4 py-2.5 bg-gradient-court hover:shadow-elevated text-white rounded-xl shadow-soft font-semibold text-sm transition-all duration-300"
               >
                 <UserPlus size={16} />
                 Invite Friends
@@ -2330,19 +2337,19 @@ Examples:
             </div>
 
             {/* Tournament Settings */}
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Trophy className="text-yellow-600" />
-                Tournament Settings
+            <div className="bg-white/70 backdrop-blur-md p-6 rounded-2xl border border-white/50 shadow-soft">
+              <h2 className="text-xl font-display font-bold mb-4 flex items-center gap-2">
+                <Trophy className="text-ball" />
+                <span className="text-foreground">Tournament Settings</span>
               </h2>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Tournament Type</label>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Tournament Type</label>
                   <select
                     value={tournamentType}
                     onChange={(e) => setTournamentType(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2.5 bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-court/50 focus:border-court/30 text-foreground font-body transition-all duration-200"
                   >
                     <option value="roundrobin">Round Robin</option>
                     <option value="bracket">Single Elimination</option>
@@ -2353,11 +2360,11 @@ Examples:
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Participant Type</label>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Participant Type</label>
                   <select
                     value={participantType}
                     onChange={(e) => setParticipantType(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2.5 bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-court/50 focus:border-court/30 text-foreground font-body transition-all duration-200"
                   >
                     <option value="individual">Individual Players</option>
                     <option value="team">Teams (Doubles)</option>
@@ -2366,7 +2373,7 @@ Examples:
                 
                 {(tournamentType === 'roundrobin' || tournamentType === 'poolplay' || tournamentType === 'bracket' || tournamentType === 'doubleelim') && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Number of Courts</label>
+                    <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Number of Courts</label>
                     <input
                       type="number"
                       min="1"
@@ -2384,7 +2391,7 @@ Examples:
                         if (!val || val < 1) setTournamentSettings({ ...tournamentSettings, courts: 1 });
                         else if (val > 12) setTournamentSettings({ ...tournamentSettings, courts: 12 });
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-2.5 bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-court/50 focus:border-court/30 text-foreground font-body transition-all duration-200"
                     />
                   </div>
                 )}
@@ -2392,7 +2399,7 @@ Examples:
                 {tournamentType === 'roundrobin' && (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Rounds</label>
+                      <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Rounds</label>
                       <input
                         type="number"
                         min="1"
@@ -2410,7 +2417,7 @@ Examples:
                           if (!val || val < 1) setTournamentSettings({ ...tournamentSettings, rounds: 1 });
                           else if (val > 10) setTournamentSettings({ ...tournamentSettings, rounds: 10 });
                         }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-2.5 bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-court/50 focus:border-court/30 text-foreground font-body transition-all duration-200"
                       />
                     </div>
                   </>
@@ -2419,7 +2426,7 @@ Examples:
                 {tournamentType === 'poolplay' && (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Number of Pools</label>
+                      <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Number of Pools</label>
                       <input
                         type="number"
                         min="1"
@@ -2435,11 +2442,11 @@ Examples:
                           const val = tournamentSettings.numPools;
                           if (!val || val < 1) setTournamentSettings({ ...tournamentSettings, numPools: 1 });
                         }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-2.5 bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-court/50 focus:border-court/30 text-foreground font-body transition-all duration-200"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Teams per Pool</label>
+                      <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Teams per Pool</label>
                       <input
                         type="number"
                         min="2"
@@ -2455,18 +2462,18 @@ Examples:
                           const val = tournamentSettings.poolSize;
                           if (!val || val < 2) setTournamentSettings({ ...tournamentSettings, poolSize: 2 });
                         }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-2.5 bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-court/50 focus:border-court/30 text-foreground font-body transition-all duration-200"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Advance to Bracket</label>
+                      <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Advance to Bracket</label>
                       <select
                         value={tournamentSettings.advanceCount}
                         onChange={(e) => setTournamentSettings({
                           ...tournamentSettings,
                           advanceCount: parseInt(e.target.value)
                         })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        className="w-full px-4 py-2.5 bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-court/50 focus:border-court/30 text-foreground font-body transition-all duration-200"
                       >
                         <option value={1}>Top 1 per pool</option>
                         <option value={2}>Top 2 per pool</option>
@@ -2477,14 +2484,14 @@ Examples:
                 )}
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Points to Win</label>
+                  <label className="block text-sm font-semibold text-foreground mb-1.5 font-body">Points to Win</label>
                   <select
                     value={tournamentSettings.pointsToWin}
                     onChange={(e) => setTournamentSettings({
                       ...tournamentSettings,
                       pointsToWin: parseInt(e.target.value)
                     })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2.5 bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-court/50 focus:border-court/30 text-foreground font-body transition-all duration-200"
                   >
                     <option value={11}>11 Points</option>
                     <option value={15}>15 Points</option>
@@ -2504,15 +2511,15 @@ Examples:
                   })}
                   className="rounded"
                 />
-                <label htmlFor="winByTwo" className="text-sm text-gray-700">Must win by 2 points</label>
+                <label htmlFor="winByTwo" className="text-sm text-foreground font-body">Must win by 2 points</label>
               </div>
             </div>
 
             {/* Add Participants */}
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <Users className="text-blue-600" />
-                Add {participantType === 'team' ? 'Teams' : 'Players'}
+            <div className="bg-white/70 backdrop-blur-md p-6 rounded-2xl border border-white/50 shadow-soft">
+              <h2 className="text-xl font-display font-bold mb-4 flex items-center gap-2">
+                <Users className="text-court" />
+                <span className="text-foreground">Add {participantType === 'team' ? 'Teams' : 'Players'}</span>
               </h2>
               
               <div className="flex gap-4 mb-4">
@@ -2522,7 +2529,7 @@ Examples:
                   onChange={(e) => setNewParticipant({...newParticipant, name: e.target.value})}
                   onKeyDown={(e) => { if (e.key === 'Enter') { if (participantType !== 'team' || newParticipant.partner.trim()) addParticipant(); } }}
                   placeholder={participantType === 'team' ? 'Player 1 name' : 'Player name'}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="flex-1 px-4 py-2.5 bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-court/50 focus:border-court/30 text-foreground font-body transition-all duration-200"
                 />
 
                 {participantType === 'team' && (
@@ -2532,13 +2539,13 @@ Examples:
                     onChange={(e) => setNewParticipant({...newParticipant, partner: e.target.value})}
                     onKeyDown={(e) => { if (e.key === 'Enter') addParticipant(); }}
                     placeholder="Player 2 name"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 px-4 py-2.5 bg-white/60 backdrop-blur-sm border border-white/40 rounded-xl focus:outline-none focus:ring-2 focus:ring-court/50 focus:border-court/30 text-foreground font-body transition-all duration-200"
                   />
                 )}
 
                 <button
                   onClick={addParticipant}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-colors"
+                  className="bg-gradient-court hover:shadow-elevated text-white px-4 py-2.5 rounded-xl shadow-soft flex items-center gap-2 transition-all duration-300 font-semibold"
                 >
                   <Plus size={16} />
                   Add
@@ -2550,7 +2557,7 @@ Examples:
                 const available = friends.filter(f => !participants.some(p => p.name.toLowerCase() === f.name.toLowerCase()));
                 return available.length > 0 ? (
                   <div className="mt-4">
-                    <h3 className="text-sm font-semibold text-gray-500 mb-2 flex items-center gap-1">
+                    <h3 className="text-sm font-semibold text-muted-foreground mb-2 flex items-center gap-1">
                       <Users size={14} />
                       Friends
                     </h3>
@@ -2559,7 +2566,7 @@ Examples:
                         <button
                           key={f.emailHash || f.email}
                           onClick={() => addFriendAsParticipant(f)}
-                          className="px-3 py-1.5 rounded-full text-sm font-medium bg-green-50 text-green-700 hover:bg-green-100 cursor-pointer transition-colors"
+                          className="px-3 py-1.5 rounded-full text-sm font-medium bg-court/10 text-court hover:bg-court/20 cursor-pointer transition-colors"
                         >
                           + {f.name}
                         </button>
@@ -2572,7 +2579,7 @@ Examples:
               {/* Player Roster — pick from previously used players */}
               {playerRoster.filter(r => r.type === participantType).length > 0 && (
                 <div className="mt-4">
-                  <h3 className="text-sm font-semibold text-gray-500 mb-2">Player Roster — tap to add</h3>
+                  <h3 className="text-sm font-semibold text-muted-foreground mb-2">Player Roster — tap to add</h3>
                   <div className="flex flex-wrap gap-2">
                     {playerRoster.filter(r => r.type === participantType).map(rp => {
                       const alreadyIn = participants.some(p =>
@@ -2586,8 +2593,8 @@ Examples:
                             disabled={alreadyIn}
                             className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                               alreadyIn
-                                ? 'bg-green-100 text-green-700 cursor-default'
-                                : 'bg-blue-50 text-blue-700 hover:bg-blue-100 cursor-pointer'
+                                ? 'bg-court/15 text-court cursor-default'
+                                : 'bg-court/5 text-court hover:bg-court/15 cursor-pointer'
                             }`}
                           >
                             {alreadyIn ? '✓ ' : '+ '}
@@ -2595,7 +2602,7 @@ Examples:
                           </button>
                           <button
                             onClick={() => removeFromRoster(rp.id)}
-                            className="text-gray-400 hover:text-red-500 p-0.5 transition-colors"
+                            className="text-muted-foreground hover:text-red-500 p-0.5 transition-colors"
                             title="Remove from roster"
                           >
                             <XIcon size={14} />
@@ -2610,8 +2617,8 @@ Examples:
 
             {/* Current Game Players */}
             {participants.length > 0 && (
-              <div className="bg-white rounded-lg border border-gray-200">
-                <h2 className="text-xl font-semibold p-4 border-b border-gray-200">
+              <div className="bg-white/70 backdrop-blur-md rounded-2xl border border-white/50 shadow-soft overflow-hidden">
+                <h2 className="text-xl font-display font-bold p-4 border-b border-white/40 text-foreground">
                   Current Game — {participantType === 'team' ? 'Teams' : 'Players'} ({participants.length})
                 </h2>
                 
@@ -2626,7 +2633,7 @@ Examples:
                           </span>
                         </div>
                       )}
-                      <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                      <div className="flex justify-between items-center p-3 bg-white/50 rounded-xl">
                         {editingParticipant && editingParticipant.id === participant.id ? (
                           <div className="flex-1 flex gap-2 items-center">
                             <input
@@ -2649,7 +2656,7 @@ Examples:
                             <button onClick={saveEditingParticipant} className="text-green-600 hover:text-green-800 p-1" title="Save">
                               <Save size={16} />
                             </button>
-                            <button onClick={() => setEditingParticipant(null)} className="text-gray-500 hover:text-gray-700 p-1" title="Cancel">
+                            <button onClick={() => setEditingParticipant(null)} className="text-muted-foreground hover:text-foreground p-1" title="Cancel">
                               <XIcon size={16} />
                             </button>
                           </div>
@@ -2662,14 +2669,14 @@ Examples:
                                   <button
                                     onClick={() => moveParticipantUp(index)}
                                     disabled={index === 0}
-                                    className="text-gray-600 hover:text-blue-600 disabled:text-gray-300 p-1"
+                                    className="text-muted-foreground hover:text-court disabled:opacity-30 p-1"
                                   >
                                     <ChevronUp size={16} />
                                   </button>
                                   <button
                                     onClick={() => moveParticipantDown(index)}
                                     disabled={index === participants.length - 1}
-                                    className="text-gray-600 hover:text-blue-600 disabled:text-gray-300 p-1"
+                                    className="text-muted-foreground hover:text-court disabled:opacity-30 p-1"
                                   >
                                     <ChevronDown size={16} />
                                   </button>
@@ -2677,7 +2684,7 @@ Examples:
                               )}
                               <button
                                 onClick={() => startEditingParticipant(participant)}
-                                className="text-blue-600 hover:text-blue-800 p-1"
+                                className="text-court hover:text-court/80 p-1"
                                 title="Edit name"
                               >
                                 <Edit3 size={16} />
@@ -2696,7 +2703,7 @@ Examples:
                   ))}
                 </div>
                 
-                <div className="p-4 border-t border-gray-200">
+                <div className="p-4 border-t border-white/40">
                   <button
                     onClick={() => {
                       if (tournamentType === 'roundrobin') generateRoundRobin();
@@ -2706,7 +2713,7 @@ Examples:
                       else generateBracket();
                     }}
                     disabled={!tournamentName.trim() || (tournamentType === 'ladder' ? (participants.length < 4 || participants.length % 4 !== 0) : (tournamentType === 'bracket' || tournamentType === 'doubleelim') ? participants.length < 4 : participants.length < 2)}
-                    className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white px-6 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 transition-colors"
+                    className="w-full bg-gradient-court hover:shadow-elevated disabled:opacity-40 text-white px-6 py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all duration-300 shadow-soft"
                   >
                     <Shuffle size={20} />
                     Start {tournamentType === 'roundrobin' ? 'Round Robin' : tournamentType === 'poolplay' ? 'Pool Play' : tournamentType === 'ladder' ? 'Ladder League' : tournamentType === 'doubleelim' ? 'Double Elimination' : 'Single Elimination'}
@@ -2739,14 +2746,14 @@ Examples:
             {/* Tournament Header */}
             <div className="flex justify-between items-center">
               <div>
-                {tournamentName && <h2 className="text-2xl font-bold text-gray-800">{tournamentName}</h2>}
-                <h3 className={`${tournamentName ? 'text-lg text-gray-500' : 'text-2xl'} font-semibold flex items-center gap-2`}>
-                  <Trophy className="text-yellow-600" />
+                {tournamentName && <h2 className="text-2xl font-display font-bold text-foreground">{tournamentName}</h2>}
+                <h3 className={`${tournamentName ? 'text-lg text-muted-foreground' : 'text-2xl'} font-semibold flex items-center gap-2`}>
+                  <Trophy className="text-ball" />
                   {tournamentType === 'roundrobin' ? 'Round Robin' : tournamentType === 'poolplay' ? (tournamentPhase === 'bracket' ? 'Bracket Play' : 'Pool Play') : tournamentType === 'ladder' ? `Ladder League — Session ${ladderSession}` : tournamentType === 'doubleelim' ? 'Double Elimination' : 'Single Elimination'}
                 </h3>
               </div>
 
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-muted-foreground font-body">
                 {(() => {
                   if (tournamentType === 'ladder' && tournamentPhase === 'session-results') {
                     return 'Session complete';
@@ -2771,13 +2778,13 @@ Examples:
                     const poolMatches = matches.filter(m => m.pool === poolNum && m.phase === 'pool');
                     const standings = getPoolStandings(poolNum);
                     return (
-                      <div key={poolNum} className="bg-gray-50 rounded-lg p-4">
+                      <div key={poolNum} className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 border border-white/40">
                         <h3 className="text-lg font-semibold mb-3">Pool {poolNum}</h3>
 
                         {/* Pool Standings */}
-                        <div className="bg-white rounded-lg border border-gray-200 mb-3">
+                        <div className="bg-white/70 backdrop-blur-sm rounded-xl border border-white/40 mb-3">
                           <table className="w-full text-sm">
-                            <thead className="bg-gray-50">
+                            <thead className="bg-court/5">
                               <tr>
                                 <th className="px-3 py-2 text-left">Team</th>
                                 <th className="px-3 py-2 text-center">W</th>
@@ -2809,11 +2816,11 @@ Examples:
                           ).map(([rd, rdMatches]) => (
                             <div key={rd}>
                               {Object.keys(poolMatches.reduce((a, m) => { a[m.round] = 1; return a; }, {})).length > 1 && (
-                                <div className="text-xs font-semibold text-gray-500 mb-1">Round {rd}</div>
+                                <div className="text-xs font-semibold text-muted-foreground mb-1">Round {rd}</div>
                               )}
                               {rdMatches.map(match => (
                                 <div key={match.id} className={`p-3 rounded-lg border-2 mb-1 ${
-                                  match.completed ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'
+                                  match.completed ? 'bg-court/10 border-court/30' : 'bg-white/70 border-white/40'
                                 }`}>
                                   {match.court && rdMatches.length > 1 && (
                                     <div className="text-xs font-semibold text-purple-600 mb-1">Court {match.court}</div>
@@ -2824,7 +2831,7 @@ Examples:
                                         <span className="font-medium text-sm">{getDisplayName(match.team1)}</span>
                                         {renderScoreInput(match, 'score1', 'small')}
                                       </div>
-                                      <div className="text-gray-400 text-xs mb-1">vs</div>
+                                      <div className="text-muted-foreground text-xs mb-1">vs</div>
                                       <div className="flex justify-between items-center">
                                         <span className="font-medium text-sm">{getDisplayName(match.team2)}</span>
                                         {renderScoreInput(match, 'score2', 'small')}
@@ -2854,7 +2861,7 @@ Examples:
                     const bracketMatches = matches.filter(m => m.phase === 'bracket');
                     const maxRound = Math.max(...bracketMatches.map(m => m.round));
                     return (
-                      <div key={round} className="bg-gray-50 rounded-lg p-4">
+                      <div key={round} className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 border border-white/40">
                         <h3 className="text-lg font-semibold mb-3">
                           {round == maxRound ? 'Final' :
                            round == maxRound - 1 ? 'Semi-Final' :
@@ -2864,7 +2871,7 @@ Examples:
                           {roundMatches.map(match => (
                             <div key={match.id} className={`p-4 rounded-lg border-2 ${
                               match.completed ? 'bg-green-50 border-green-200' :
-                              match.team1 && match.team2 ? 'bg-white border-gray-200' : 'bg-gray-100 border-gray-300'
+                              match.team1 && match.team2 ? 'bg-white/70 border-white/40' : 'bg-white/40 border-white/30'
                             }`}>
                               <div className="flex justify-between items-center">
                                 <div className="flex-1">
@@ -2872,7 +2879,7 @@ Examples:
                                     <span className="font-medium">{getDisplayName(match.team1)}</span>
                                     {renderScoreInput(match, 'score1')}
                                   </div>
-                                  <div className="text-gray-400 text-sm mb-2">vs</div>
+                                  <div className="text-muted-foreground text-sm mb-2">vs</div>
                                   <div className="flex justify-between items-center">
                                     <span className="font-medium">{getDisplayName(match.team2)}</span>
                                     {renderScoreInput(match, 'score2')}
@@ -2896,7 +2903,7 @@ Examples:
                   <div className="space-y-6">
                     <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4 text-center">
                       <h3 className="text-xl font-bold text-yellow-700">Session {ladderSession} Complete</h3>
-                      <p className="text-gray-600 mt-1">Review standings and player movements below</p>
+                      <p className="text-muted-foreground mt-1">Review standings and player movements below</p>
                     </div>
 
                     {Object.keys(courtAssignments).map(Number).sort((a, b) => b - a).map(courtNum => {
@@ -2906,12 +2913,12 @@ Examples:
                       const bottomCourt = Math.min(...courtNums);
 
                       return (
-                        <div key={courtNum} className="bg-white rounded-lg border-2 border-gray-200 overflow-hidden">
-                          <div className={`px-4 py-2 font-semibold text-white ${courtNum === topCourt ? 'bg-purple-600' : courtNum === bottomCourt ? 'bg-gray-500' : 'bg-blue-500'}`}>
+                        <div key={courtNum} className="bg-white/70 backdrop-blur-sm rounded-2xl border-2 border-white/40 overflow-hidden shadow-soft">
+                          <div className={`px-4 py-2 font-semibold text-white rounded-t-xl ${courtNum === topCourt ? 'bg-gradient-court' : courtNum === bottomCourt ? 'bg-foreground/60' : 'bg-court/80'}`}>
                             Court {courtNum} {courtNum === topCourt ? '(Top)' : courtNum === bottomCourt ? '(Bottom)' : ''}
                           </div>
                           <table className="w-full">
-                            <thead className="bg-gray-50">
+                            <thead className="bg-court/5">
                               <tr>
                                 <th className="px-4 py-2 text-left">Rank</th>
                                 <th className="px-4 py-2 text-left">Player</th>
@@ -2943,7 +2950,7 @@ Examples:
                                         </span>
                                       )}
                                       {!movesUp && !movesDown && (
-                                        <span className="text-gray-400">—</span>
+                                        <span className="text-muted-foreground">—</span>
                                       )}
                                     </td>
                                   </tr>
@@ -2980,26 +2987,26 @@ Examples:
                   Object.keys(courtAssignments).map(Number).sort((a, b) => b - a).map(courtNum => {
                     const courtMatches = matches.filter(m => m.court === courtNum && m.phase === 'ladder');
                     return (
-                      <div key={courtNum} className="bg-gray-50 rounded-lg p-4">
+                      <div key={courtNum} className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 border border-white/40">
                         <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
                           Court {courtNum}
-                          <span className="text-sm font-normal text-gray-500">
+                          <span className="text-sm font-normal text-muted-foreground">
                             ({courtAssignments[courtNum]?.map(p => p.name).join(', ')})
                           </span>
                         </h3>
                         <div className="grid gap-3">
                           {courtMatches.map(match => (
                             <div key={match.id} className={`p-4 rounded-lg border-2 ${
-                              match.completed ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'
+                              match.completed ? 'bg-court/10 border-court/30' : 'bg-white/70 border-white/40'
                             }`}>
-                              <div className="text-xs text-gray-500 mb-1">Game {match.round}</div>
+                              <div className="text-xs text-muted-foreground mb-1">Game {match.round}</div>
                               <div className="flex justify-between items-center">
                                 <div className="flex-1">
                                   <div className="flex justify-between items-center mb-2">
                                     <span className="font-medium">{getDisplayName(match.team1)}</span>
                                     {renderScoreInput(match, 'score1')}
                                   </div>
-                                  <div className="text-gray-400 text-sm mb-2">vs</div>
+                                  <div className="text-muted-foreground text-sm mb-2">vs</div>
                                   <div className="flex justify-between items-center">
                                     <span className="font-medium">{getDisplayName(match.team2)}</span>
                                     {renderScoreInput(match, 'score2')}
@@ -3025,12 +3032,12 @@ Examples:
                     return acc;
                   }, {})
                 ).map(([round, roundMatches]) => (
-                  <div key={round} className="bg-gray-50 rounded-lg p-4">
+                  <div key={round} className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 border border-white/40">
                     <h3 className="text-lg font-semibold mb-3">Round {round}</h3>
                     <div className="grid gap-3">
                       {roundMatches.map((match) => (
                         <div key={match.id} className={`p-4 rounded-lg border-2 ${
-                          match.completed ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'
+                          match.completed ? 'bg-court/10 border-court/30' : 'bg-white/70 border-white/40'
                         }`}>
                           {match.court && roundMatches.length > 1 && (
                             <div className="text-xs font-semibold text-purple-600 mb-2">Court {match.court}</div>
@@ -3041,7 +3048,7 @@ Examples:
                                 <span className="font-medium">{getDisplayName(match.team1)}</span>
                                 {renderScoreInput(match, 'score1')}
                               </div>
-                              <div className="text-gray-400 text-sm mb-2">vs</div>
+                              <div className="text-muted-foreground text-sm mb-2">vs</div>
                               <div className="flex justify-between items-center">
                                 <span className="font-medium">{getDisplayName(match.team2)}</span>
                                 {renderScoreInput(match, 'score2')}
@@ -3076,7 +3083,7 @@ Examples:
                           <div className="space-y-4">
                             {Object.entries(rounds).sort(([a], [b]) => a - b).map(([round, roundMatches]) => (
                               <div key={round}>
-                                <h4 className="text-sm font-semibold text-gray-500 mb-2">
+                                <h4 className="text-sm font-semibold text-muted-foreground mb-2">
                                   {bracketType === 'winners'
                                     ? (round == 1 ? 'Round 1' : round == maxRound ? 'Winners Final' : `Round ${round}`)
                                     : `Round ${round}`}
@@ -3084,12 +3091,12 @@ Examples:
                                 <div className="grid gap-2">
                                   {roundMatches.map(match => (
                                     <div key={match.id} className={`p-3 rounded-lg border ${
-                                      match.isBye ? 'bg-gray-50 border-gray-200' :
+                                      match.isBye ? 'bg-white/40 border-white/30' :
                                       match.completed ? 'bg-green-50 border-green-200' :
-                                      match.team1 && match.team2 ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-200'
+                                      match.team1 && match.team2 ? 'bg-white/70 border-white/40' : 'bg-white/40 border-white/30'
                                     }`}>
                                       {match.isBye ? (
-                                        <div className="text-sm text-gray-500">{getDisplayName(match.team1)} — BYE</div>
+                                        <div className="text-sm text-muted-foreground">{getDisplayName(match.team1)} — BYE</div>
                                       ) : (
                                         <div className="flex justify-between items-center">
                                           <div className="flex-1">
@@ -3097,7 +3104,7 @@ Examples:
                                               <span className="font-medium text-sm">{getDisplayName(match.team1)}</span>
                                               {renderScoreInput(match, 'score1', 'small')}
                                             </div>
-                                            <div className="text-gray-400 text-xs mb-1">vs</div>
+                                            <div className="text-muted-foreground text-xs mb-1">vs</div>
                                             <div className="flex justify-between items-center">
                                               <span className="font-medium text-sm">{getDisplayName(match.team2)}</span>
                                               {renderScoreInput(match, 'score2', 'small')}
@@ -3135,7 +3142,7 @@ Examples:
                             </h3>
                             <div className={`p-4 rounded-lg border-2 ${
                               grandFinal.completed ? 'bg-green-50 border-green-200' :
-                              grandFinal.team1 && grandFinal.team2 ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-200'
+                              grandFinal.team1 && grandFinal.team2 ? 'bg-white/70 border-white/40' : 'bg-white/40 border-white/30'
                             }`}>
                               <div className="flex justify-between items-center">
                                 <div className="flex-1">
@@ -3143,7 +3150,7 @@ Examples:
                                     <span className="font-medium">{getDisplayName(grandFinal.team1)}{grandFinal.team1 ? ' (W)' : ''}</span>
                                     {renderScoreInput(grandFinal, 'score1')}
                                   </div>
-                                  <div className="text-gray-400 text-sm mb-2">vs</div>
+                                  <div className="text-muted-foreground text-sm mb-2">vs</div>
                                   <div className="flex justify-between items-center">
                                     <span className="font-medium">{getDisplayName(grandFinal.team2)}{grandFinal.team2 ? ' (L)' : ''}</span>
                                     {renderScoreInput(grandFinal, 'score2')}
@@ -3161,9 +3168,9 @@ Examples:
                         {resetMatch && resetMatch.team1 && resetMatch.team2 && (
                           <div className="border-2 border-purple-300 bg-purple-50/50 rounded-lg p-4">
                             <h3 className="text-lg font-bold mb-3">Reset Match</h3>
-                            <p className="text-sm text-gray-600 mb-3">Losers bracket champion won the Grand Final — one more match to decide the champion!</p>
+                            <p className="text-sm text-muted-foreground mb-3">Losers bracket champion won the Grand Final — one more match to decide the champion!</p>
                             <div className={`p-4 rounded-lg border-2 ${
-                              resetMatch.completed ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'
+                              resetMatch.completed ? 'bg-court/10 border-court/30' : 'bg-white/70 border-white/40'
                             }`}>
                               <div className="flex justify-between items-center">
                                 <div className="flex-1">
@@ -3171,7 +3178,7 @@ Examples:
                                     <span className="font-medium">{getDisplayName(resetMatch.team1)}</span>
                                     {renderScoreInput(resetMatch, 'score1')}
                                   </div>
-                                  <div className="text-gray-400 text-sm mb-2">vs</div>
+                                  <div className="text-muted-foreground text-sm mb-2">vs</div>
                                   <div className="flex justify-between items-center">
                                     <span className="font-medium">{getDisplayName(resetMatch.team2)}</span>
                                     {renderScoreInput(resetMatch, 'score2')}
@@ -3197,7 +3204,7 @@ Examples:
                     return acc;
                   }, {})
                 ).map(([round, roundMatches]) => (
-                  <div key={round} className="bg-gray-50 rounded-lg p-4">
+                  <div key={round} className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 border border-white/40">
                     <h3 className="text-lg font-semibold mb-3">
                       {round == 1 ? 'First Round' :
                        round == Math.max(...matches.map(m => m.round)) ? 'Final' :
@@ -3212,13 +3219,13 @@ Examples:
                             <span className="text-sm text-blue-600 font-medium">BYE — auto-advances</span>
                           </div>
                         ) : !match.team1 && !match.team2 ? (
-                          <div key={match.id} className="p-4 rounded-lg border-2 bg-gray-50 border-dashed border-gray-300 text-center text-gray-400 text-sm">
+                          <div key={match.id} className="p-4 rounded-xl border-2 bg-white/40 border-dashed border-white/50 text-center text-muted-foreground text-sm">
                             Waiting for previous round
                           </div>
                         ) : (
                           <div key={match.id} className={`p-4 rounded-lg border-2 ${
                             match.completed ? 'bg-green-50 border-green-200' :
-                            match.team1 && match.team2 ? 'bg-white border-gray-200' : 'bg-gray-100 border-gray-300'
+                            match.team1 && match.team2 ? 'bg-white/70 border-white/40' : 'bg-white/40 border-white/30'
                           }`}>
                             <div className="flex justify-between items-center">
                               <div className="flex-1">
@@ -3226,7 +3233,7 @@ Examples:
                                   <span className="font-medium">{getDisplayName(match.team1)}</span>
                                   {renderScoreInput(match, 'score1')}
                                 </div>
-                                <div className="text-gray-400 text-sm mb-2">vs</div>
+                                <div className="text-muted-foreground text-sm mb-2">vs</div>
                                 <div className="flex justify-between items-center">
                                   <span className="font-medium">{getDisplayName(match.team2)}</span>
                                   {renderScoreInput(match, 'score2')}
@@ -3263,11 +3270,11 @@ Examples:
 
             {/* Standings for Round Robin */}
             {tournamentType === 'roundrobin' && (
-              <div className="bg-white rounded-lg border border-gray-200">
-                <h3 className="text-xl font-semibold p-4 border-b border-gray-200">Standings</h3>
+              <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/40 shadow-soft">
+                <h3 className="text-xl font-display font-bold p-4 border-b border-white/40 text-foreground">Standings</h3>
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-court/5">
                       <tr>
                         <th className="px-4 py-2 text-left">Rank</th>
                         <th className="px-4 py-2 text-left">{participantType === 'team' ? 'Team' : 'Player'}</th>
@@ -3279,7 +3286,7 @@ Examples:
                     </thead>
                     <tbody>
                       {getStandings().map((participant, index) => (
-                        <tr key={participant.id} className={index === 0 ? 'bg-yellow-50' : 'hover:bg-gray-50'}>
+                        <tr key={participant.id} className={index === 0 ? 'bg-ball/10' : 'hover:bg-court/5'}>
                           <td className="px-4 py-2">
                             <div className="flex items-center gap-2">
                               {index === 0 && <Crown className="text-yellow-500" size={16} />}
@@ -3307,32 +3314,32 @@ Examples:
             {/* Game Title */}
             {tournamentName && (
               <div className="text-center">
-                <h2 className="text-3xl font-bold text-gray-800">{tournamentName}</h2>
-                <p className="text-gray-500 text-sm mt-1">{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <h2 className="text-3xl font-display font-bold text-foreground">{tournamentName}</h2>
+                <p className="text-muted-foreground text-sm mt-1">{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
               </div>
             )}
 
             {/* Champion Banner */}
             {getStandings().length > 0 && (
-              <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-6 text-center">
-                <Crown className="text-yellow-500 mx-auto mb-2" size={48} />
-                <h2 className="text-3xl font-bold text-yellow-700 mb-1">Champion</h2>
-                <p className="text-2xl font-semibold">{getDisplayName(getStandings()[0])}</p>
-                <p className="text-gray-600 mt-1">
+              <div className="bg-gradient-sunny rounded-2xl p-6 text-center shadow-soft">
+                <Crown className="text-white mx-auto mb-2 drop-shadow" size={48} />
+                <h2 className="text-3xl font-display font-bold text-foreground mb-1">Champion</h2>
+                <p className="text-2xl font-semibold text-foreground">{getDisplayName(getStandings()[0])}</p>
+                <p className="text-foreground/70 mt-1 font-body">
                   {getStandings()[0].wins}W - {getStandings()[0].losses}L ({getStandings()[0].winPercentage.toFixed(1)}%)
                 </p>
               </div>
             )}
 
             {/* Final Rankings Table */}
-            <div className="bg-white rounded-lg border border-gray-200">
-              <h3 className="text-xl font-semibold p-4 border-b border-gray-200 flex items-center gap-2">
-                <Trophy className="text-yellow-600" size={20} />
+            <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/40 shadow-soft">
+              <h3 className="text-xl font-display font-bold p-4 border-b border-white/40 flex items-center gap-2 text-foreground">
+                <Trophy className="text-ball" size={20} />
                 Final Rankings
               </h3>
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-court/5">
                     <tr>
                       <th className="px-4 py-3 text-left">Rank</th>
                       <th className="px-4 py-3 text-left">{participantType === 'team' ? 'Team' : 'Player'}</th>
@@ -3346,10 +3353,10 @@ Examples:
                   <tbody>
                     {getStandings().map((participant, index) => (
                       <tr key={participant.id} className={
-                        index === 0 ? 'bg-yellow-50 font-semibold' :
-                        index === 1 ? 'bg-gray-100' :
-                        index === 2 ? 'bg-orange-50' :
-                        'hover:bg-gray-50'
+                        index === 0 ? 'bg-ball/10 font-semibold' :
+                        index === 1 ? 'bg-court/5' :
+                        index === 2 ? 'bg-ball/5' :
+                        'hover:bg-court/5'
                       }>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
@@ -3361,7 +3368,7 @@ Examples:
                         <td className="px-4 py-3 text-center">{participant.wins}</td>
                         <td className="px-4 py-3 text-center">{participant.losses}</td>
                         <td className="px-4 py-3 text-center">{participant.winPercentage.toFixed(1)}%</td>
-                        <td className={`px-4 py-3 text-center font-medium ${participant.pointDiff > 0 ? 'text-green-600' : participant.pointDiff < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                        <td className={`px-4 py-3 text-center font-medium ${participant.pointDiff > 0 ? 'text-court' : participant.pointDiff < 0 ? 'text-red-500' : 'text-muted-foreground'}`}>
                           {participant.pointDiff > 0 ? '+' : ''}{participant.pointDiff}
                         </td>
                         <td className="px-4 py-3 text-center">{participant.points}</td>
@@ -3383,22 +3390,14 @@ Examples:
             {/* Action Buttons */}
             <div className="flex justify-center gap-4 flex-wrap">
               <button
-                onClick={shareGame}
-                disabled={isSharing}
-                className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
-              >
-                {isSharing ? <Loader2Icon size={16} className="animate-spin" /> : <Share2 size={16} />}
-                Share Results
-              </button>
-              <button
                 onClick={() => setCurrentView('tournament')}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors"
+                className="bg-gradient-court hover:shadow-elevated text-white px-6 py-3 rounded-xl shadow-soft flex items-center gap-2 transition-all duration-300 font-semibold"
               >
                 Back to Tournament
               </button>
               <button
                 onClick={() => resetTournament()}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg flex items-center gap-2 transition-colors"
+                className="bg-white/70 backdrop-blur-md hover:bg-white/90 text-foreground px-6 py-3 rounded-xl shadow-soft border border-white/40 flex items-center gap-2 transition-all duration-300 font-semibold"
               >
                 New Tournament
               </button>
@@ -3412,38 +3411,38 @@ Examples:
             
             {/* Match Header */}
             <div className="text-center">
-              <h2 className="text-2xl font-semibold mb-2">Match in Progress</h2>
-              <div className="text-gray-600">
+              <h2 className="text-2xl font-display font-bold text-foreground mb-2">Match in Progress</h2>
+              <div className="text-muted-foreground font-body">
                 Playing to {tournamentSettings.pointsToWin} points
                 {tournamentSettings.winByTwo && ' (must win by 2)'}
               </div>
             </div>
 
             {/* Score Display */}
-            <div className="bg-gray-50 rounded-lg p-6">
+            <div className="bg-white/70 backdrop-blur-md rounded-2xl p-6 border border-white/50 shadow-soft">
               <div className="grid grid-cols-2 gap-6">
-                
+
                 {/* Team 1 */}
                 <div className="text-center">
-                  <h3 className="text-lg font-semibold mb-4">{getDisplayName(currentMatch.team1)}</h3>
+                  <h3 className="text-lg font-display font-bold text-foreground mb-4">{getDisplayName(currentMatch.team1)}</h3>
                   <input
                     type="number"
                     min="0"
                     value={score.team1}
                     onChange={(e) => setScore({ ...score, team1: parseInt(e.target.value) || 0 })}
-                    className="w-24 mx-auto text-6xl font-bold text-blue-600 text-center border-b-4 border-blue-300 focus:border-blue-600 focus:outline-none bg-transparent"
+                    className="w-24 mx-auto text-6xl font-bold text-court text-center border-b-4 border-court/30 focus:border-court focus:outline-none bg-transparent"
                   />
                 </div>
 
                 {/* Team 2 */}
                 <div className="text-center">
-                  <h3 className="text-lg font-semibold mb-4">{getDisplayName(currentMatch.team2)}</h3>
+                  <h3 className="text-lg font-display font-bold text-foreground mb-4">{getDisplayName(currentMatch.team2)}</h3>
                   <input
                     type="number"
                     min="0"
                     value={score.team2}
                     onChange={(e) => setScore({ ...score, team2: parseInt(e.target.value) || 0 })}
-                    className="w-24 mx-auto text-6xl font-bold text-red-600 text-center border-b-4 border-red-300 focus:border-red-600 focus:outline-none bg-transparent"
+                    className="w-24 mx-auto text-6xl font-bold text-ball text-center border-b-4 border-ball/30 focus:border-ball focus:outline-none bg-transparent"
                   />
                 </div>
               </div>
@@ -3453,7 +3452,7 @@ Examples:
             <div className="flex justify-center gap-4">
               <button
                 onClick={completeMatch}
-                className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors"
+                className="bg-gradient-court hover:shadow-elevated text-white px-8 py-3 rounded-xl shadow-soft font-semibold transition-all duration-300"
               >
                 Complete Match
               </button>
@@ -3462,7 +3461,7 @@ Examples:
                   setCurrentView('tournament');
                   setCurrentMatch(null);
                 }}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-8 py-3 rounded-lg font-semibold transition-colors"
+                className="bg-white/70 backdrop-blur-md hover:bg-white/90 text-foreground px-8 py-3 rounded-xl shadow-soft border border-white/40 font-semibold transition-all duration-300"
               >
                 Back to Tournament
               </button>
