@@ -1785,18 +1785,16 @@ Examples:
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-court/8 rounded-full blur-3xl" />
         <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-ball/10 rounded-full blur-3xl" />
       </div>
-      <div className="relative z-10 max-w-6xl mx-auto p-6">
-        <div className="bg-white/80 backdrop-blur-sm rounded-lg shadow-lg p-6">
-        
+      <div className="relative z-10 max-w-6xl mx-auto px-4 md:px-8 py-6">
+
         {/* Header */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 animate-fade-in-up">
+          <div className="flex items-center gap-3">
             <Link href="/">
-              <img src="/pickleball-vibes-logo.png" alt="Pickleball Vibes" className="h-16 w-16 object-contain drop-shadow-md cursor-pointer hover:scale-105 transition-transform duration-300" />
+              <img src="/pickleball-vibes-logo.png" alt="Pickleball Vibes" className="h-32 w-32 md:h-36 md:w-36 object-contain drop-shadow-md cursor-pointer hover:scale-105 transition-transform duration-300" />
             </Link>
-            <h1 className="text-3xl font-bold text-gray-800 flex items-center gap-3">
-              <Target className="text-green-600" />
-              Pickleball Tournament Manager
+            <h1 className="text-3xl md:text-4xl font-display font-bold text-foreground">
+              Tournament <span className="text-gradient-court">Manager</span>
             </h1>
           </div>
 
@@ -1807,13 +1805,13 @@ Examples:
               <>
                 <button
                   onClick={() => setCurrentView('format-select')}
-                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors"
+                  className="bg-white/70 backdrop-blur-md hover:bg-white/90 text-foreground px-4 py-2 rounded-xl shadow-soft border border-white/40 transition-all duration-300 font-semibold"
                 >
                   Back
                 </button>
                 <button
                   onClick={() => setCurrentView('ai-setup')}
-                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                  className="bg-gradient-court hover:shadow-elevated text-white px-4 py-2 rounded-xl shadow-soft flex items-center gap-2 transition-all duration-300 font-semibold"
                 >
                   <Bot size={16} />
                   AI Setup
@@ -1824,25 +1822,25 @@ Examples:
             {currentView === 'ai-setup' && (
               <button
                 onClick={() => setCurrentView('setup')}
-                className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors"
+                className="bg-white/70 backdrop-blur-md hover:bg-white/90 text-foreground px-4 py-2 rounded-xl shadow-soft border border-white/40 transition-all duration-300 font-semibold"
               >
                 Manual Setup
               </button>
             )}
-            
+
             {currentView !== 'setup' && currentView !== 'ai-setup' && currentView !== 'format-select' && (
               <div className="flex gap-2">
                 <button
                   onClick={shareGame}
                   disabled={isSharing}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
+                  className="bg-gradient-court hover:shadow-elevated text-white px-4 py-2 rounded-xl shadow-soft flex items-center gap-2 transition-all duration-300 font-semibold disabled:opacity-50"
                 >
                   {isSharing ? <Loader2Icon size={16} className="animate-spin" /> : <Share2 size={16} />}
                   Share
                 </button>
                 <button
                   onClick={() => resetTournament()}
-                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                  className="bg-white/70 backdrop-blur-md hover:bg-white/90 text-foreground px-4 py-2 rounded-xl shadow-soft border border-white/40 flex items-center gap-2 transition-all duration-300 font-semibold"
                 >
                   <Home size={16} />
                   New Game
@@ -1850,7 +1848,7 @@ Examples:
                 {(matches.length > 0 && matches.filter(m => !m.isReset || (m.team1 && m.team2)).every(m => m.completed)) || (tournamentType === 'ladder' && tournamentPhase === 'session-results') ? (
                   <button
                     onClick={() => setCurrentView('results')}
-                    className="bg-yellow-600 hover:bg-yellow-700 text-white px-4 py-2 rounded-lg transition-colors"
+                    className="bg-gradient-sunny hover:shadow-elevated text-foreground px-4 py-2 rounded-xl shadow-soft transition-all duration-300 font-semibold"
                   >
                     Results
                   </button>
@@ -1862,7 +1860,7 @@ Examples:
                         setCurrentView('results');
                       }
                     }}
-                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl shadow-soft flex items-center gap-2 transition-all duration-300 font-semibold"
                   >
                     <StopCircle size={16} />
                     End Game
@@ -1875,39 +1873,39 @@ Examples:
 
         {/* Format Selection View */}
         {currentView === 'format-select' && (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-fade-in-up">
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-800 mb-2">Choose Your Game Format</h2>
-              <p className="text-gray-600">Select a format to get started</p>
+              <h2 className="text-2xl font-bold text-foreground mb-2">Choose Your Game Format</h2>
+              <p className="text-muted-foreground font-body">Select a format to get started</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <button
                 onClick={() => { setTournamentType('roundrobin'); setCurrentView('setup'); }}
-                className="text-left p-6 rounded-xl border-2 border-gray-200 hover:border-blue-400 hover:bg-blue-50 transition-all duration-200 hover:shadow-md group"
+                className="text-left p-6 rounded-2xl bg-white/70 backdrop-blur-md border border-white/50 shadow-soft hover:shadow-elevated hover:scale-[1.02] transition-all duration-300 group"
               >
                 <div className="flex items-start gap-4">
-                  <div className="p-3 rounded-xl bg-blue-50 group-hover:bg-blue-100 transition-colors">
-                    <Shuffle size={32} className="text-blue-600" />
+                  <div className="p-3 rounded-xl bg-court/10 group-hover:bg-court/20 transition-colors">
+                    <Shuffle size={32} className="text-court" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-gray-800 mb-1">Round Robin</h3>
-                    <p className="text-sm text-gray-600 leading-relaxed">Every player/team plays against every other. Best for smaller groups wanting maximum play time.</p>
+                    <h3 className="text-lg font-bold text-foreground mb-1">Round Robin</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">Every player/team plays against every other. Best for smaller groups wanting maximum play time.</p>
                   </div>
                 </div>
               </button>
 
               <button
                 onClick={() => { setTournamentType('bracket'); setCurrentView('setup'); }}
-                className="text-left p-6 rounded-xl border-2 border-gray-200 hover:border-yellow-400 hover:bg-yellow-50 transition-all duration-200 hover:shadow-md group"
+                className="text-left p-6 rounded-2xl bg-white/70 backdrop-blur-md border border-white/50 shadow-soft hover:shadow-elevated hover:scale-[1.02] transition-all duration-300 group"
               >
                 <div className="flex items-start gap-4">
-                  <div className="p-3 rounded-xl bg-yellow-50 group-hover:bg-yellow-100 transition-colors">
-                    <Trophy size={32} className="text-yellow-600" />
+                  <div className="p-3 rounded-xl bg-ball/10 group-hover:bg-ball/20 transition-colors">
+                    <Trophy size={32} className="text-ball" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-gray-800 mb-1">Single Elimination</h3>
-                    <p className="text-sm text-gray-600 leading-relaxed">Single elimination bracket. Win or go home — perfect for competitive events.</p>
+                    <h3 className="text-lg font-bold text-foreground mb-1">Single Elimination</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">Single elimination bracket. Win or go home — perfect for competitive events.</p>
                   </div>
                 </div>
               </button>
@@ -1948,15 +1946,15 @@ Examples:
 
               <button
                 onClick={() => { setTournamentType('doubleelim'); setCurrentView('setup'); }}
-                className="text-left p-6 rounded-xl border-2 border-gray-200 hover:border-red-400 hover:bg-red-50 transition-all duration-200 hover:shadow-md group"
+                className="text-left p-6 rounded-2xl bg-white/70 backdrop-blur-md border border-white/50 shadow-soft hover:shadow-elevated hover:scale-[1.02] transition-all duration-300 group"
               >
                 <div className="flex items-start gap-4">
                   <div className="p-3 rounded-xl bg-red-50 group-hover:bg-red-100 transition-colors">
-                    <Trophy size={32} className="text-red-600" />
+                    <Trophy size={32} className="text-red-500" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-bold text-gray-800 mb-1">Double Elimination</h3>
-                    <p className="text-sm text-gray-600 leading-relaxed">Lose twice and you're out. Winners and losers brackets lead to a grand final.</p>
+                    <h3 className="text-lg font-bold text-foreground mb-1">Double Elimination</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">Lose twice and you're out. Winners and losers brackets lead to a grand final.</p>
                   </div>
                 </div>
               </button>
@@ -3469,7 +3467,6 @@ Examples:
             </div>
           </div>
         )}
-        </div>
       </div>
 
       {showInviteModal && (
