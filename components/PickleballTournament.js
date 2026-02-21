@@ -1962,13 +1962,13 @@ Examples:
 
             {/* Saved Game Detail Modal */}
             {viewingSavedGame && (
-              <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setViewingSavedGame(null)}>
-                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+              <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setViewingSavedGame(null)}>
+                <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-elevated w-full max-w-2xl max-h-[85vh] overflow-y-auto border border-white/50" onClick={(e) => e.stopPropagation()}>
                   {/* Modal Header */}
-                  <div className="sticky top-0 bg-white border-b border-gray-200 p-4 rounded-t-2xl flex items-center justify-between">
+                  <div className="sticky top-0 bg-white/90 backdrop-blur-md border-b border-white/40 p-5 rounded-t-3xl flex items-center justify-between">
                     <div>
-                      <h2 className="text-xl font-bold text-gray-800">{viewingSavedGame.name}</h2>
-                      <p className="text-sm text-gray-500">
+                      <h2 className="text-xl font-display font-bold text-foreground">{viewingSavedGame.name}</h2>
+                      <p className="text-sm text-muted-foreground font-body">
                         {viewingSavedGame.date} &middot; {
                           viewingSavedGame.type === 'roundrobin' ? 'Round Robin' :
                           viewingSavedGame.type === 'bracket' ? 'Bracket' :
@@ -1979,19 +1979,19 @@ Examples:
                         }
                       </p>
                     </div>
-                    <button onClick={() => setViewingSavedGame(null)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
-                      <XIcon size={20} className="text-gray-500" />
+                    <button onClick={() => setViewingSavedGame(null)} className="p-2 hover:bg-court/10 rounded-xl transition-colors">
+                      <XIcon size={20} className="text-muted-foreground" />
                     </button>
                   </div>
 
-                  <div className="p-4 space-y-4">
+                  <div className="p-5 space-y-4">
                     {/* Champion Banner */}
                     {viewingSavedGame.standings && viewingSavedGame.standings.length > 0 && (
-                      <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4 text-center">
-                        <Crown className="text-yellow-500 mx-auto mb-1" size={36} />
-                        <h3 className="text-2xl font-bold text-yellow-700 mb-1">Champion</h3>
-                        <p className="text-xl font-semibold">{getDisplayName(viewingSavedGame.standings[0])}</p>
-                        <p className="text-gray-600 text-sm mt-1">
+                      <div className="bg-gradient-sunny rounded-2xl p-5 text-center shadow-soft">
+                        <Crown className="text-white mx-auto mb-1 drop-shadow" size={36} />
+                        <h3 className="text-2xl font-display font-bold text-foreground mb-1">Champion</h3>
+                        <p className="text-xl font-semibold text-foreground">{getDisplayName(viewingSavedGame.standings[0])}</p>
+                        <p className="text-foreground/70 text-sm mt-1 font-body">
                           {viewingSavedGame.standings[0].wins}W - {viewingSavedGame.standings[0].losses}L ({viewingSavedGame.standings[0].winPercentage?.toFixed(1) || '0.0'}%)
                         </p>
                       </div>
@@ -1999,42 +1999,42 @@ Examples:
 
                     {/* Final Rankings */}
                     {viewingSavedGame.standings && viewingSavedGame.standings.length > 0 && (
-                      <div className="bg-white rounded-lg border border-gray-200">
-                        <h3 className="text-lg font-semibold p-3 border-b border-gray-200 flex items-center gap-2">
-                          <Trophy className="text-yellow-600" size={18} />
+                      <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/50 shadow-soft overflow-hidden">
+                        <h3 className="text-lg font-display font-semibold p-4 border-b border-white/40 flex items-center gap-2">
+                          <Trophy className="text-ball" size={18} />
                           Final Rankings
                         </h3>
                         <div className="overflow-x-auto">
                           <table className="w-full">
-                            <thead className="bg-gray-50">
+                            <thead className="bg-court/5">
                               <tr>
-                                <th className="px-3 py-2 text-left text-sm">Rank</th>
-                                <th className="px-3 py-2 text-left text-sm">{viewingSavedGame.participantType === 'team' ? 'Team' : 'Player'}</th>
-                                <th className="px-3 py-2 text-center text-sm">W</th>
-                                <th className="px-3 py-2 text-center text-sm">L</th>
-                                <th className="px-3 py-2 text-center text-sm">Win %</th>
-                                <th className="px-3 py-2 text-center text-sm">Pts</th>
+                                <th className="px-3 py-2.5 text-left text-sm font-semibold text-foreground">Rank</th>
+                                <th className="px-3 py-2.5 text-left text-sm font-semibold text-foreground">{viewingSavedGame.participantType === 'team' ? 'Team' : 'Player'}</th>
+                                <th className="px-3 py-2.5 text-center text-sm font-semibold text-foreground">W</th>
+                                <th className="px-3 py-2.5 text-center text-sm font-semibold text-foreground">L</th>
+                                <th className="px-3 py-2.5 text-center text-sm font-semibold text-foreground">Win %</th>
+                                <th className="px-3 py-2.5 text-center text-sm font-semibold text-foreground">Pts</th>
                               </tr>
                             </thead>
                             <tbody>
                               {viewingSavedGame.standings.map((p, index) => (
                                 <tr key={p.id || index} className={
-                                  index === 0 ? 'bg-yellow-50 font-semibold' :
-                                  index === 1 ? 'bg-gray-100' :
-                                  index === 2 ? 'bg-orange-50' :
-                                  'hover:bg-gray-50'
+                                  index === 0 ? 'bg-ball/10 font-semibold' :
+                                  index === 1 ? 'bg-court/5' :
+                                  index === 2 ? 'bg-ball/5' :
+                                  'hover:bg-court/5'
                                 }>
-                                  <td className="px-3 py-2 text-sm">
+                                  <td className="px-3 py-2.5 text-sm text-foreground">
                                     <div className="flex items-center gap-1">
-                                      {index === 0 && <Crown className="text-yellow-500" size={14} />}
+                                      {index === 0 && <Crown className="text-ball" size={14} />}
                                       #{index + 1}
                                     </div>
                                   </td>
-                                  <td className="px-3 py-2 text-sm">{getDisplayName(p)}</td>
-                                  <td className="px-3 py-2 text-center text-sm">{p.wins}</td>
-                                  <td className="px-3 py-2 text-center text-sm">{p.losses}</td>
-                                  <td className="px-3 py-2 text-center text-sm">{p.winPercentage?.toFixed(1) || '0.0'}%</td>
-                                  <td className="px-3 py-2 text-center text-sm">{p.points}</td>
+                                  <td className="px-3 py-2.5 text-sm text-foreground">{getDisplayName(p)}</td>
+                                  <td className="px-3 py-2.5 text-center text-sm text-foreground">{p.wins}</td>
+                                  <td className="px-3 py-2.5 text-center text-sm text-foreground">{p.losses}</td>
+                                  <td className="px-3 py-2.5 text-center text-sm text-foreground">{p.winPercentage?.toFixed(1) || '0.0'}%</td>
+                                  <td className="px-3 py-2.5 text-center text-sm text-foreground">{p.points}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -2045,39 +2045,39 @@ Examples:
 
                     {/* Match Scores */}
                     {viewingSavedGame.matches && viewingSavedGame.matches.length > 0 && (
-                      <div className="bg-white rounded-lg border border-gray-200">
-                        <h3 className="text-lg font-semibold p-3 border-b border-gray-200 flex items-center gap-2">
-                          <Play className="text-blue-600" size={18} />
+                      <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-white/50 shadow-soft overflow-hidden">
+                        <h3 className="text-lg font-display font-semibold p-4 border-b border-white/40 flex items-center gap-2">
+                          <Play className="text-court" size={18} />
                           Match Scores
                         </h3>
-                        <div className="divide-y divide-gray-100">
+                        <div className="divide-y divide-white/40">
                           {viewingSavedGame.matches
                             .filter(m => m.completed)
                             .map((m, i) => (
-                              <div key={m.id || i} className="p-3 flex items-center justify-between">
+                              <div key={m.id || i} className="p-3.5 flex items-center justify-between hover:bg-court/5 transition-colors">
                                 <div className="flex-1">
                                   <div className="flex items-center gap-2">
-                                    <span className={`text-sm font-medium ${m.winner && ((m.winner.id || m.winner) === (m.team1?.id || m.team1)) ? 'text-green-700 font-bold' : 'text-gray-700'}`}>
+                                    <span className={`text-sm font-medium ${m.winner && ((m.winner.id || m.winner) === (m.team1?.id || m.team1)) ? 'text-court font-bold' : 'text-foreground'}`}>
                                       {getDisplayName(m.team1)}
                                     </span>
-                                    <span className="text-xs text-gray-400">vs</span>
-                                    <span className={`text-sm font-medium ${m.winner && ((m.winner.id || m.winner) === (m.team2?.id || m.team2)) ? 'text-green-700 font-bold' : 'text-gray-700'}`}>
+                                    <span className="text-xs text-muted-foreground">vs</span>
+                                    <span className={`text-sm font-medium ${m.winner && ((m.winner.id || m.winner) === (m.team2?.id || m.team2)) ? 'text-court font-bold' : 'text-foreground'}`}>
                                       {getDisplayName(m.team2)}
                                     </span>
                                   </div>
                                   {m.bracket && (
-                                    <span className="text-xs text-gray-400 mt-0.5 block capitalize">{m.bracket.replace('-', ' ')}{m.round ? ` R${m.round}` : ''}</span>
+                                    <span className="text-xs text-muted-foreground mt-0.5 block capitalize">{m.bracket.replace('-', ' ')}{m.round ? ` R${m.round}` : ''}</span>
                                   )}
                                 </div>
                                 <div className="text-right">
-                                  <span className="text-sm font-bold text-gray-800">
+                                  <span className="text-sm font-bold text-foreground">
                                     {m.score1 ?? '?'} - {m.score2 ?? '?'}
                                   </span>
                                 </div>
                               </div>
                           ))}
                           {viewingSavedGame.matches.filter(m => m.completed).length === 0 && (
-                            <p className="p-3 text-sm text-gray-500 text-center">No completed matches</p>
+                            <p className="p-3.5 text-sm text-muted-foreground text-center font-body">No completed matches</p>
                           )}
                         </div>
                       </div>
@@ -2090,37 +2090,39 @@ Examples:
             {/* Game History */}
             {savedGames.length > 0 && (
               <div className="mt-8">
-                <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center gap-2">
-                  <History size={20} className="text-gray-600" />
-                  Game History
-                </h3>
-                <div className="space-y-2">
+                <div className="flex items-center gap-2.5 mb-4">
+                  <div className="bg-gradient-court p-2 rounded-xl shadow-soft">
+                    <History size={18} className="text-white" />
+                  </div>
+                  <h3 className="text-lg font-display font-bold text-foreground">Game History</h3>
+                </div>
+                <div className="space-y-3">
                   {savedGames.map((game) => {
                     const typeLabel = game.type === 'roundrobin' ? 'Round Robin' : game.type === 'bracket' ? 'Bracket' : game.type === 'poolplay' ? 'Pool Play' : game.type === 'ladder' ? 'Ladder' : game.type === 'doubleelim' ? 'Double Elim' : game.type;
                     const champion = game.standings && game.standings[0];
                     return (
-                      <div key={game.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
+                      <div key={game.id} className="flex items-center justify-between p-4 bg-white/70 backdrop-blur-md rounded-2xl border border-white/50 shadow-soft hover:shadow-elevated transition-all duration-300">
                         <div className="flex-1 cursor-pointer" onClick={() => setViewingSavedGame(game)}>
-                          <p className="font-semibold text-gray-800">{game.name}</p>
-                          <p className="text-sm text-gray-500">{game.date} &middot; {typeLabel} &middot; {game.participants?.length || 0} {game.participantType === 'team' ? 'teams' : 'players'}</p>
+                          <p className="font-semibold text-foreground">{game.name}</p>
+                          <p className="text-sm text-muted-foreground font-body">{game.date} &middot; {typeLabel} &middot; {game.participants?.length || 0} {game.participantType === 'team' ? 'teams' : 'players'}</p>
                         </div>
                         <div className="flex items-center gap-3">
                           {champion && (
-                            <div className="flex items-center gap-1 text-sm text-yellow-700">
-                              <Crown size={14} className="text-yellow-500" />
-                              {champion.name}{champion.partner ? ` & ${champion.partner}` : ''}
+                            <div className="flex items-center gap-1 text-sm text-ball font-semibold">
+                              <Crown size={14} className="text-ball" />
+                              <span className="hidden sm:inline">{champion.name}{champion.partner ? ` & ${champion.partner}` : ''}</span>
                             </div>
                           )}
                           <button
                             onClick={() => setViewingSavedGame(game)}
-                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            className="p-2 text-court hover:bg-court/10 rounded-xl transition-colors"
                             title="View scores"
                           >
                             <Eye size={16} />
                           </button>
                           <button
                             onClick={() => { if (confirm('Delete this saved game?')) deleteSavedGame(game.id); }}
-                            className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            className="p-2 text-red-400 hover:bg-red-50 rounded-xl transition-colors"
                             title="Delete game"
                           >
                             <Trash2 size={16} />
