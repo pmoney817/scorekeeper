@@ -2348,17 +2348,6 @@ Examples:
               />
             </div>
 
-            {/* Invite Friends */}
-            <div className="flex justify-end">
-              <button
-                onClick={() => setShowInviteModal(true)}
-                className="flex items-center gap-2 px-4 py-2.5 bg-gradient-court hover:shadow-elevated text-white rounded-xl shadow-soft font-semibold text-sm transition-all duration-300"
-              >
-                <UserPlus size={16} />
-                Invite Friends
-              </button>
-            </div>
-
             {/* Tournament Settings */}
             <div className="bg-white/70 backdrop-blur-md p-6 rounded-2xl border border-white/50 shadow-soft">
               <h2 className="text-xl font-display font-bold mb-4 flex items-center gap-2">
