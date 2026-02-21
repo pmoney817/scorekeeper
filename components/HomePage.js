@@ -52,9 +52,9 @@ export default function HomePage() {
 
       {/* Content */}
       <div className="relative z-10 min-h-screen flex flex-col">
-        {/* Top bar: Menu + Logo + Daily Vibes */}
+        {/* Top bar: Menu + Login/Logout */}
         <div className="px-4 md:px-8 pt-5 pb-4 animate-fade-in-up">
-          <div className="flex items-center gap-4 flex-1">
+          <div className="flex items-center justify-between">
             {/* Menu */}
             <div ref={menuRef} className="relative z-20">
               <button
@@ -105,50 +105,45 @@ export default function HomePage() {
               )}
             </div>
 
-            {/* Logo */}
-            <img src="/pickleball-vibes-logo.png" alt="Pickleball Vibes logo" className="h-64 w-64 md:h-80 md:w-80 object-contain drop-shadow-md" />
-
-            {/* Daily Vibes text */}
-            <div>
-              <h2 className="text-xl md:text-2xl font-display font-bold text-foreground leading-tight">
-                Daily <span className="text-gradient-court">Vibes</span>
-              </h2>
-              <p className="text-muted-foreground font-body text-xs md:text-sm">
-                Fuel your mindset and sharpen your game
-              </p>
-            </div>
+            {/* Login/Logout button */}
+            {user ? (
+              <div className="flex items-center gap-3">
+                {user.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt={user.name}
+                    className="w-9 h-9 rounded-full object-cover border-2 border-white/50"
+                  />
+                ) : (
+                  <div className="w-9 h-9 rounded-full bg-court/20 flex items-center justify-center text-court font-bold text-sm border-2 border-white/50">
+                    {user.name?.charAt(0).toUpperCase() || '?'}
+                  </div>
+                )}
+                <button
+                  onClick={handleLogout}
+                  className="inline-flex items-center gap-2 bg-white/70 backdrop-blur-md px-5 py-2.5 rounded-xl shadow-soft border border-white/40 hover:bg-white/90 transition-all duration-300 cursor-pointer font-semibold text-foreground text-sm"
+                >
+                  <LogOut className="w-4 h-4 text-court" />
+                  Log Out
+                </button>
+              </div>
+            ) : (
+              <Link href="/login">
+                <span className="inline-flex items-center gap-2 bg-white/70 backdrop-blur-md px-5 py-2.5 rounded-xl shadow-soft border border-white/40 hover:bg-white/90 transition-all duration-300 cursor-pointer font-semibold text-foreground text-sm">
+                  <LogIn className="w-4 h-4 text-court" />
+                  Log In
+                </span>
+              </Link>
+            )}
           </div>
+        </div>
 
-          {/* Login/Logout button */}
-          {user ? (
-            <div className="flex items-center gap-3">
-              {user.avatarUrl ? (
-                <img
-                  src={user.avatarUrl}
-                  alt={user.name}
-                  className="w-9 h-9 rounded-full object-cover border-2 border-white/50"
-                />
-              ) : (
-                <div className="w-9 h-9 rounded-full bg-court/20 flex items-center justify-center text-court font-bold text-sm border-2 border-white/50">
-                  {user.name?.charAt(0).toUpperCase() || '?'}
-                </div>
-              )}
-              <button
-                onClick={handleLogout}
-                className="inline-flex items-center gap-2 bg-white/70 backdrop-blur-md px-5 py-2.5 rounded-xl shadow-soft border border-white/40 hover:bg-white/90 transition-all duration-300 cursor-pointer font-semibold text-foreground text-sm"
-              >
-                <LogOut className="w-4 h-4 text-court" />
-                Log Out
-              </button>
-            </div>
-          ) : (
-            <Link href="/login">
-              <span className="inline-flex items-center gap-2 bg-white/70 backdrop-blur-md px-5 py-2.5 rounded-xl shadow-soft border border-white/40 hover:bg-white/90 transition-all duration-300 cursor-pointer font-semibold text-foreground text-sm">
-                <LogIn className="w-4 h-4 text-court" />
-                Log In
-              </span>
-            </Link>
-          )}
+        {/* Logo + Tagline */}
+        <div className="flex flex-col items-center px-4 pb-2 animate-fade-in-up">
+          <img src="/pickleball-vibes-logo.png" alt="Pickleball Vibes logo" className="h-32 w-32 md:h-40 md:w-40 object-contain drop-shadow-md" />
+          <p className="text-muted-foreground font-body text-sm mt-1">
+            Fuel your mindset and sharpen your game
+          </p>
         </div>
 
         {/* Hero Section */}
