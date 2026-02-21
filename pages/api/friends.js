@@ -116,25 +116,29 @@ export default async function handler(req, res) {
       const myRequests = (await getBlob('friend-requests', emailHash)) || [];
       const incomingFromTarget = myRequests.find(r => r.fromEmailHash === targetEmailHash);
       if (incomingFromTarget) {
-        // Auto-accept: add both as friends
+        // Auto-accept: add both as friends (if not already there)
         const now = Date.now();
-        const myUpdatedFriends = [...myFriends, {
-          emailHash: targetEmailHash,
-          email: targetEmail,
-          name: targetName,
-          addedAt: now,
-          status: 'accepted',
-        }];
-        await putBlob('friends', emailHash, myUpdatedFriends);
+        if (!myFriends.some(f => f.emailHash === targetEmailHash)) {
+          myFriends.push({
+            emailHash: targetEmailHash,
+            email: targetEmail,
+            name: targetName,
+            addedAt: now,
+            status: 'accepted',
+          });
+        }
+        await putBlob('friends', emailHash, myFriends);
 
         const targetFriends = (await getBlob('friends', targetEmailHash)) || [];
-        targetFriends.push({
-          emailHash: emailHash,
-          email: sender.email,
-          name: sender.name,
-          addedAt: now,
-          status: 'accepted',
-        });
+        if (!targetFriends.some(f => f.emailHash === emailHash)) {
+          targetFriends.push({
+            emailHash: emailHash,
+            email: sender.email,
+            name: sender.name,
+            addedAt: now,
+            status: 'accepted',
+          });
+        }
         await putBlob('friends', targetEmailHash, targetFriends);
 
         // Remove the incoming request
@@ -176,28 +180,32 @@ export default async function handler(req, res) {
       if (accept) {
         const now = Date.now();
 
-        // Add to my friends
+        // Add to my friends (if not already there)
         const myFriends = (await getBlob('friends', emailHash)) || [];
-        myFriends.push({
-          emailHash: fromEmailHash,
-          email: request.fromEmail,
-          name: request.fromName,
-          addedAt: now,
-          status: 'accepted',
-        });
-        await putBlob('friends', emailHash, myFriends);
+        if (!myFriends.some(f => f.emailHash === fromEmailHash)) {
+          myFriends.push({
+            emailHash: fromEmailHash,
+            email: request.fromEmail,
+            name: request.fromName,
+            addedAt: now,
+            status: 'accepted',
+          });
+          await putBlob('friends', emailHash, myFriends);
+        }
 
-        // Add to their friends
+        // Add to their friends (if not already there)
         const me = await getBlob('users', emailHash);
         const theirFriends = (await getBlob('friends', fromEmailHash)) || [];
-        theirFriends.push({
-          emailHash: emailHash,
-          email: me?.email || email,
-          name: me?.name || 'Unknown',
-          addedAt: now,
-          status: 'accepted',
-        });
-        await putBlob('friends', fromEmailHash, theirFriends);
+        if (!theirFriends.some(f => f.emailHash === emailHash)) {
+          theirFriends.push({
+            emailHash: emailHash,
+            email: me?.email || email,
+            name: me?.name || 'Unknown',
+            addedAt: now,
+            status: 'accepted',
+          });
+          await putBlob('friends', fromEmailHash, theirFriends);
+        }
       }
 
       return res.status(200).json({ status: accept ? 'accepted' : 'declined' });

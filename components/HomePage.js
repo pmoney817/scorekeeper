@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Trophy, ArrowRight, Sparkles, Target, Menu, X, LogIn, LogOut, Users, Swords, Settings } from 'lucide-react';
+import { Trophy, ArrowRight, Sparkles, Target, Menu, X, LogIn, LogOut, Users, Settings } from 'lucide-react';
 import FriendRequestBadge from './FriendRequestBadge';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -91,12 +91,6 @@ export default function HomePage() {
                         <FriendRequestBadge />
                       </div>
                       <span className="font-semibold text-foreground text-sm">Friends</span>
-                    </div>
-                  </Link>
-                  <Link href="/challenges" onClick={() => setMenuOpen(false)}>
-                    <div className="flex items-center gap-3 px-5 py-3 hover:bg-court/10 transition-colors cursor-pointer">
-                      <Swords className="w-5 h-5 text-court" />
-                      <span className="font-semibold text-foreground text-sm">Challenges</span>
                     </div>
                   </Link>
                   {user && (
