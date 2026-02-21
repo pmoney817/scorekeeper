@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import { Users, Search, UserPlus, Bell, Activity, X as XIcon, Check, Loader2, UserMinus } from 'lucide-react';
+import { Users, Search, UserPlus, Bell, Activity, X as XIcon, Check, Loader2, UserMinus, Clock, Send } from 'lucide-react';
 
 export default function FriendsPage() {
   const router = useRouter();
@@ -10,6 +10,7 @@ export default function FriendsPage() {
   const [friends, setFriends] = useState([]);
   const [requests, setRequests] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [sentRequests, setSentRequests] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -23,6 +24,7 @@ export default function FriendsPage() {
         setUser(u);
         loadFriends(u.email);
         loadRequests(u.email);
+        loadSentRequests(u.email);
       } else {
         setLoading(false);
       }
@@ -58,6 +60,36 @@ export default function FriendsPage() {
       if (data.requests) setRequests(data.requests);
     } catch (e) {
       console.error('Load requests error:', e);
+    }
+  };
+
+  const loadSentRequests = async (email) => {
+    try {
+      const res = await fetch('/api/friends', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'sent-requests', email }),
+      });
+      const data = await res.json();
+      if (data.sentRequests) setSentRequests(data.sentRequests);
+    } catch (e) {
+      console.error('Load sent requests error:', e);
+    }
+  };
+
+  const cancelRequest = async (targetEmailHash) => {
+    setActionLoading(targetEmailHash);
+    try {
+      await fetch('/api/friends', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'cancel-request', email: user.email, targetEmailHash }),
+      });
+      setSentRequests(prev => prev.filter(r => r.toEmailHash !== targetEmailHash));
+    } catch (e) {
+      console.error('Cancel request error:', e);
+    } finally {
+      setActionLoading(null);
     }
   };
 
@@ -97,6 +129,14 @@ export default function FriendsPage() {
       if (data.status === 'sent' || data.status === 'auto-accepted') {
         // Remove from search results
         setSearchResults(prev => prev.filter(r => r.emailHash !== target.emailHash));
+        if (data.status === 'sent') {
+          setSentRequests(prev => [...prev, {
+            toEmailHash: target.emailHash,
+            toEmail: target.email,
+            toName: target.name,
+            sentAt: Date.now(),
+          }]);
+        }
         if (data.status === 'auto-accepted') {
           loadFriends(user.email);
           loadRequests(user.email);
@@ -161,7 +201,7 @@ export default function FriendsPage() {
   const tabs = [
     { id: 'friends', label: 'My Friends', icon: Users, count: friends.length },
     { id: 'find', label: 'Find Friends', icon: Search },
-    { id: 'requests', label: 'Requests', icon: Bell, count: requests.length },
+    { id: 'requests', label: 'Requests', icon: Bell, count: requests.length + sentRequests.length },
   ];
 
   return (
@@ -275,6 +315,7 @@ export default function FriendsPage() {
             <div className="space-y-3">
               {searchResults.map(result => {
                 const isFriend = friends.some(f => f.emailHash === result.emailHash);
+                const isPending = sentRequests.some(s => s.toEmailHash === result.emailHash);
                 return (
                   <div
                     key={result.emailHash}
@@ -298,6 +339,11 @@ export default function FriendsPage() {
                     </div>
                     {isFriend ? (
                       <span className="text-sm text-court font-semibold">Friends</span>
+                    ) : isPending ? (
+                      <span className="flex items-center gap-1 text-sm text-muted-foreground font-medium">
+                        <Clock className="w-3.5 h-3.5" />
+                        Pending
+                      </span>
                     ) : (
                       <button
                         onClick={() => sendRequest(result)}
@@ -329,48 +375,101 @@ export default function FriendsPage() {
       {/* Requests */}
       {tab === 'requests' && (
         <div className="space-y-3">
-          {requests.length === 0 ? (
+          {requests.length === 0 && sentRequests.length === 0 ? (
             <div className="text-center py-12 bg-white/60 backdrop-blur-sm rounded-2xl border border-white/50">
               <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-3 opacity-50" />
               <p className="text-muted-foreground">No pending friend requests</p>
             </div>
           ) : (
-            requests.map(req => (
-              <div
-                key={req.fromEmailHash}
-                className="flex items-center gap-4 bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/50"
-              >
-                <div className="w-10 h-10 rounded-full bg-court/20 flex items-center justify-center text-court font-bold text-lg flex-shrink-0">
-                  {req.fromName.charAt(0).toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-foreground">{req.fromName}</p>
-                  <p className="text-sm text-muted-foreground truncate">{req.fromEmail}</p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => respondToRequest(req.fromEmailHash, true)}
-                    disabled={actionLoading === req.fromEmailHash}
-                    className="p-2.5 bg-court text-white rounded-lg hover:bg-court/90 transition-colors disabled:opacity-50"
-                    title="Accept"
-                  >
-                    {actionLoading === req.fromEmailHash ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <Check className="w-4 h-4" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => respondToRequest(req.fromEmailHash, false)}
-                    disabled={actionLoading === req.fromEmailHash}
-                    className="p-2.5 bg-white/70 text-muted-foreground rounded-lg hover:bg-red-50 hover:text-red-500 transition-colors border border-white/50 disabled:opacity-50"
-                    title="Decline"
-                  >
-                    <XIcon className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-            ))
+            <>
+              {requests.length > 0 && (
+                <>
+                  {sentRequests.length > 0 && (
+                    <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-1.5">
+                      <Bell className="w-3.5 h-3.5" />
+                      Incoming
+                    </h3>
+                  )}
+                  {requests.map(req => (
+                    <div
+                      key={req.fromEmailHash}
+                      className="flex items-center gap-4 bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/50"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-court/20 flex items-center justify-center text-court font-bold text-lg flex-shrink-0">
+                        {req.fromName.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-foreground">{req.fromName}</p>
+                        <p className="text-sm text-muted-foreground truncate">{req.fromEmail}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => respondToRequest(req.fromEmailHash, true)}
+                          disabled={actionLoading === req.fromEmailHash}
+                          className="p-2.5 bg-court text-white rounded-lg hover:bg-court/90 transition-colors disabled:opacity-50"
+                          title="Accept"
+                        >
+                          {actionLoading === req.fromEmailHash ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Check className="w-4 h-4" />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => respondToRequest(req.fromEmailHash, false)}
+                          disabled={actionLoading === req.fromEmailHash}
+                          className="p-2.5 bg-white/70 text-muted-foreground rounded-lg hover:bg-red-50 hover:text-red-500 transition-colors border border-white/50 disabled:opacity-50"
+                          title="Decline"
+                        >
+                          <XIcon className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+
+              {sentRequests.length > 0 && (
+                <>
+                  <h3 className="text-sm font-semibold text-muted-foreground flex items-center gap-1.5 mt-2">
+                    <Send className="w-3.5 h-3.5" />
+                    Sent
+                  </h3>
+                  {sentRequests.map(sr => (
+                    <div
+                      key={sr.toEmailHash}
+                      className="flex items-center gap-4 bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-white/50"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-ball/20 flex items-center justify-center text-foreground font-bold text-lg flex-shrink-0">
+                        {sr.toName.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-foreground">{sr.toName}</p>
+                        <p className="text-sm text-muted-foreground truncate">{sr.toEmail}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground font-medium">
+                          <Clock className="w-3.5 h-3.5" />
+                          Pending
+                        </span>
+                        <button
+                          onClick={() => cancelRequest(sr.toEmailHash)}
+                          disabled={actionLoading === sr.toEmailHash}
+                          className="p-2.5 bg-white/70 text-muted-foreground rounded-lg hover:bg-red-50 hover:text-red-500 transition-colors border border-white/50 disabled:opacity-50"
+                          title="Cancel request"
+                        >
+                          {actionLoading === sr.toEmailHash ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <XIcon className="w-4 h-4" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
+            </>
           )}
         </div>
       )}

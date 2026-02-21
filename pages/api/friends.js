@@ -145,17 +145,35 @@ export default async function handler(req, res) {
         const updatedMyRequests = myRequests.filter(r => r.fromEmailHash !== targetEmailHash);
         await putBlob('friend-requests', emailHash, updatedMyRequests);
 
+        // Clean up the other user's sent-requests
+        const targetSent = (await getBlob('sent-requests', targetEmailHash)) || [];
+        const updatedTargetSent = targetSent.filter(s => s.toEmailHash !== emailHash);
+        if (updatedTargetSent.length !== targetSent.length) {
+          await putBlob('sent-requests', targetEmailHash, updatedTargetSent);
+        }
+
         return res.status(200).json({ status: 'auto-accepted' });
       }
 
       // Add request to target's incoming requests
+      const now = Date.now();
       targetRequests.push({
         fromEmailHash: emailHash,
         fromEmail: sender.email,
         fromName: sender.name,
-        sentAt: Date.now(),
+        sentAt: now,
       });
       await putBlob('friend-requests', targetEmailHash, targetRequests);
+
+      // Track in sender's sent-requests
+      const mySent = (await getBlob('sent-requests', emailHash)) || [];
+      mySent.push({
+        toEmailHash: targetEmailHash,
+        toEmail: targetEmail,
+        toName: targetName,
+        sentAt: now,
+      });
+      await putBlob('sent-requests', emailHash, mySent);
 
       return res.status(200).json({ status: 'sent' });
     }
@@ -176,6 +194,13 @@ export default async function handler(req, res) {
       // Remove the request
       const updatedRequests = myRequests.filter(r => r.fromEmailHash !== fromEmailHash);
       await putBlob('friend-requests', emailHash, updatedRequests);
+
+      // Clean up sender's sent-requests
+      const senderSent = (await getBlob('sent-requests', fromEmailHash)) || [];
+      const updatedSenderSent = senderSent.filter(s => s.toEmailHash !== emailHash);
+      if (updatedSenderSent.length !== senderSent.length) {
+        await putBlob('sent-requests', fromEmailHash, updatedSenderSent);
+      }
 
       if (accept) {
         const now = Date.now();
@@ -241,6 +266,32 @@ export default async function handler(req, res) {
     if (action === 'pending') {
       const requests = (await getBlob('friend-requests', emailHash)) || [];
       return res.status(200).json({ requests });
+    }
+
+    // Get sent friend requests
+    if (action === 'sent-requests') {
+      const sent = (await getBlob('sent-requests', emailHash)) || [];
+      return res.status(200).json({ sentRequests: sent });
+    }
+
+    // Cancel a sent friend request
+    if (action === 'cancel-request') {
+      const { targetEmailHash } = req.body;
+      if (!targetEmailHash) {
+        return res.status(400).json({ error: 'targetEmailHash is required' });
+      }
+
+      // Remove from target's incoming requests
+      const targetRequests = (await getBlob('friend-requests', targetEmailHash)) || [];
+      const updatedTargetRequests = targetRequests.filter(r => r.fromEmailHash !== emailHash);
+      await putBlob('friend-requests', targetEmailHash, updatedTargetRequests);
+
+      // Remove from sender's sent-requests
+      const mySent = (await getBlob('sent-requests', emailHash)) || [];
+      const updatedMySent = mySent.filter(s => s.toEmailHash !== targetEmailHash);
+      await putBlob('sent-requests', emailHash, updatedMySent);
+
+      return res.status(200).json({ status: 'cancelled' });
     }
 
     return res.status(400).json({ error: 'Invalid action' });
