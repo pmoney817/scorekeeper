@@ -140,9 +140,9 @@ export default function AffirmationsPage() {
             <div ref={menuRef} className="relative z-20">
               <button
                 onClick={() => setMenuOpen(!menuOpen)}
-                className="p-3 bg-white/70 backdrop-blur-md rounded-xl shadow-soft border border-white/40 hover:bg-white/90 transition-all duration-300"
+                className="p-4 bg-white/70 backdrop-blur-md rounded-xl shadow-soft border border-white/40 hover:bg-white/90 transition-all duration-300"
               >
-                {menuOpen ? <X className="w-6 h-6 text-foreground" /> : <Menu className="w-6 h-6 text-foreground" />}
+                {menuOpen ? <X className="w-8 h-8 text-foreground" /> : <Menu className="w-8 h-8 text-foreground" />}
               </button>
 
               {menuOpen && (
@@ -178,23 +178,23 @@ export default function AffirmationsPage() {
 
             {/* Login/Logout button */}
             {user ? (
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-4">
                 {user.avatarUrl ? (
                   <img
                     src={user.avatarUrl}
                     alt={user.name}
-                    className="w-9 h-9 rounded-full object-cover border-2 border-white/50"
+                    className="w-12 h-12 rounded-full object-cover border-2 border-white/50"
                   />
                 ) : (
-                  <div className="w-9 h-9 rounded-full bg-court/20 flex items-center justify-center text-court font-bold text-sm border-2 border-white/50">
+                  <div className="w-12 h-12 rounded-full bg-court/20 flex items-center justify-center text-court font-bold text-base border-2 border-white/50">
                     {user.name?.charAt(0).toUpperCase() || '?'}
                   </div>
                 )}
                 <button
                   onClick={handleLogout}
-                  className="inline-flex items-center gap-2 bg-white/70 backdrop-blur-md px-5 py-2.5 rounded-xl shadow-soft border border-white/40 hover:bg-white/90 transition-all duration-300 cursor-pointer font-semibold text-foreground text-sm"
+                  className="inline-flex items-center gap-2 bg-white/70 backdrop-blur-md px-6 py-3 rounded-xl shadow-soft border border-white/40 hover:bg-white/90 transition-all duration-300 cursor-pointer font-semibold text-foreground text-base"
                 >
-                  <LogOut className="w-4 h-4 text-court" />
+                  <LogOut className="w-5 h-5 text-court" />
                   Log Out
                 </button>
               </div>
@@ -219,12 +219,12 @@ export default function AffirmationsPage() {
         {/* Page title */}
         <div className="text-center mb-6 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-display font-bold text-foreground mb-3 leading-tight">
-            Daily <span className="text-gradient-court">Vibes</span>
+            Pickleball <span className="text-gradient-court">Positivity</span>
           </h1>
           <div className="flex justify-center">
             <div className="inline-flex items-center gap-3 bg-white/60 backdrop-blur-md text-foreground px-6 py-3 rounded-2xl text-base md:text-lg font-semibold border border-white/50 shadow-soft">
               <Zap className="w-5 h-5 text-ball" />
-              Fuel your pickleball mindset
+              Fuel your mindset with positivity
             </div>
           </div>
         </div>

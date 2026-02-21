@@ -62,7 +62,7 @@ export default function AffirmationCard() {
       </div>
 
       <p className="text-center text-muted-foreground mt-4 text-sm font-body">
-        Your daily dose of pickleball positivity
+        Your dose of pickleball positivity
       </p>
     </div>
   );
