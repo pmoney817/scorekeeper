@@ -182,17 +182,20 @@ export default function Settings() {
             </div>
 
             <div className="flex items-center gap-3">
-              {user?.avatarUrl ? (
-                <img
-                  src={user.avatarUrl}
-                  alt={user.name}
-                  className="w-12 h-12 rounded-full object-cover border-2 border-white/50"
-                />
-              ) : (
-                <div className="w-12 h-12 rounded-full bg-court/20 flex items-center justify-center text-court font-bold text-base border-2 border-white/50">
-                  {user?.name?.charAt(0).toUpperCase() || '?'}
-                </div>
-              )}
+              <div className="flex items-center gap-2.5">
+                {user?.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt={user.name}
+                    className="w-16 h-16 rounded-full object-cover border-2 border-white/50"
+                  />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-court/20 flex items-center justify-center text-court font-bold text-xl border-2 border-white/50">
+                    {user?.name?.charAt(0).toUpperCase() || '?'}
+                  </div>
+                )}
+                <span className="font-semibold text-foreground text-sm hidden sm:block max-w-[100px] truncate">{user?.name}</span>
+              </div>
               <button
                 onClick={handleLogout}
                 className="inline-flex items-center gap-2 bg-white/70 backdrop-blur-md px-6 py-3 rounded-xl shadow-soft border border-white/40 hover:bg-white/90 transition-all duration-300 cursor-pointer font-semibold text-foreground text-base"

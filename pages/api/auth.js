@@ -1,4 +1,4 @@
-import { put, list } from '@vercel/blob';
+import { put, list, del } from '@vercel/blob';
 import crypto from 'crypto';
 
 function hashEmail(email) {
@@ -165,6 +165,77 @@ export default async function handler(req, res) {
       user.passwordHash = hashPassword(newPassword);
       await putUser(emailHash, user);
       return res.status(200).json({ success: true });
+    }
+
+    if (action === 'delete-account') {
+      const { email, password } = req.body;
+
+      if (!email || !password) {
+        return res.status(400).json({ error: 'Email and password are required' });
+      }
+
+      const emailHash = hashEmail(email);
+      const user = await getUser(emailHash);
+
+      if (!user) {
+        return res.status(404).json({ error: 'Account not found' });
+      }
+
+      if (!verifyPassword(password, user.passwordHash)) {
+        return res.status(401).json({ error: 'Incorrect password' });
+      }
+
+      // Delete all user-related blobs
+      const prefixes = [
+        `users/${emailHash}`,
+        `profiles/${emailHash}`,
+        `friends/${emailHash}`,
+        `friend-requests/${emailHash}`,
+        `sent-requests/${emailHash}`,
+        `activity/${emailHash}`,
+        `user-challenges/${emailHash}`,
+        `user-invites/${emailHash}`,
+        `avatars/${emailHash}`,
+      ];
+
+      for (const prefix of prefixes) {
+        try {
+          const { blobs } = await list({ prefix });
+          for (const blob of blobs) {
+            await del(blob.url);
+          }
+        } catch {}
+      }
+
+      // Remove from friends' lists
+      try {
+        const { blobs: friendBlobs } = await list({ prefix: `friends/${emailHash}` });
+        if (friendBlobs.length > 0) {
+          const friendsRes = await fetch(friendBlobs[0].url);
+          if (friendsRes.ok) {
+            const friends = await friendsRes.json();
+            for (const friend of friends) {
+              try {
+                const { blobs: theirBlobs } = await list({ prefix: `friends/${friend.emailHash}` });
+                if (theirBlobs.length > 0) {
+                  const theirRes = await fetch(theirBlobs[0].url);
+                  if (theirRes.ok) {
+                    const theirFriends = await theirRes.json();
+                    const updated = theirFriends.filter(f => f.emailHash !== emailHash);
+                    await put(`friends/${friend.emailHash}.json`, JSON.stringify(updated), {
+                      access: 'public',
+                      addRandomSuffix: false,
+                      allowOverwrite: true,
+                    });
+                  }
+                }
+              } catch {}
+            }
+          }
+        }
+      } catch {}
+
+      return res.status(200).json({ status: 'deleted' });
     }
 
     return res.status(400).json({ error: 'Invalid action' });

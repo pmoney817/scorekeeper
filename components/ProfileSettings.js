@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Camera, Loader2, Save } from 'lucide-react';
+import { Camera, Loader2, Save, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/router';
 
 async function hashEmail(email) {
   const msgBuffer = new TextEncoder().encode(email.toLowerCase().trim());
@@ -9,12 +10,16 @@ async function hashEmail(email) {
 }
 
 export default function ProfileSettings() {
+  const router = useRouter();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef(null);
 
   // Editable fields
@@ -374,6 +379,87 @@ export default function ProfileSettings() {
           </>
         )}
       </button>
+
+      {/* Delete Account */}
+      <div className="mt-10 bg-red-50/60 backdrop-blur-sm rounded-2xl p-6 border border-red-200/50 shadow-soft">
+        <h2 className="text-lg font-display font-bold text-red-700 mb-2">Delete Account</h2>
+        <p className="text-sm text-red-600/80 font-body mb-4">
+          This will permanently delete your account, profile, friends, and all associated data. This action cannot be undone.
+        </p>
+
+        {!showDeleteConfirm ? (
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-red-100 text-red-700 rounded-xl font-semibold text-sm hover:bg-red-200 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete My Account
+          </button>
+        ) : (
+          <div className="space-y-3">
+            <label className="block text-sm font-semibold text-red-700 font-body">
+              Enter your password to confirm
+            </label>
+            <input
+              type="password"
+              value={deletePassword}
+              onChange={(e) => setDeletePassword(e.target.value)}
+              placeholder="Your password"
+              className="w-full px-4 py-3 bg-white/80 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-400/50 text-foreground placeholder-muted-foreground font-body"
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={async () => {
+                  if (!deletePassword) {
+                    setError('Please enter your password to confirm deletion.');
+                    return;
+                  }
+                  setDeleting(true);
+                  setError('');
+                  try {
+                    const res = await fetch('/api/auth', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ action: 'delete-account', email: user.email, password: deletePassword }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) {
+                      setError(data.error || 'Failed to delete account');
+                      setDeleting(false);
+                      return;
+                    }
+                    localStorage.removeItem('pickleball-user');
+                    router.push('/');
+                  } catch {
+                    setError('Network error. Please try again.');
+                    setDeleting(false);
+                  }
+                }}
+                disabled={deleting}
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-xl font-semibold text-sm hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {deleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-4 h-4" />
+                    Permanently Delete
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => { setShowDeleteConfirm(false); setDeletePassword(''); setError(''); }}
+                className="px-5 py-2.5 bg-white/70 text-foreground rounded-xl font-semibold text-sm hover:bg-white/90 transition-colors border border-white/50"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
